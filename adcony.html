@@ -1,1 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin – Task Approval</title>
 
+<style>
+:root{
+  --primary:#0d6efd;
+  --success:#16a34a;
+  --danger:#dc2626;
+  --bg:#f4f7fa;
+  --white:#fff;
+}
+*{box-sizing:border-box;font-family:Inter,sans-serif}
+body{margin:0;background:var(--bg)}
+header{background:#fff;padding:15px 25px;font-weight:700;color:var(--primary)}
+.container{max-width:1000px;margin:30px auto;padding:20px}
+.card{background:#fff;padding:20px;border-radius:12px;margin-bottom:20px}
+.meta{font-size:14px;color:#555;margin-bottom:10px}
+.actions{display:flex;gap:10px;margin-top:15px}
+button{
+  padding:10px 16px;border:none;border-radius:8px;
+  font-weight:600;cursor:pointer
+}
+.approve{background:var(--success);color:#fff}
+.reject{background:var(--danger);color:#fff}
+</style>
+</head>
+
+<body>
+
+<header>Admin – Task Approval</header>
+
+<div class="container" id="taskContainer"></div>
+
+<button onclick="location.href='adminpanel.html'">Home</button>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  onSnapshot,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  increment,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+
+/* ===== FIREBASE ===== */
+const firebaseConfig = {
+  apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
+  authDomain: "chiearnhub-5ba9e.firebaseapp.com",
+  projectId: "chiearnhub-5ba9e",
+  storageBucket: "chiearnhub-5ba9e.firebasestorage.app",
+  messagingSenderId: "332513744974",
+  appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+/* ===== AUTH CHECK ===== */
+const storedUser = JSON.parse(localStorage.getItem("currentUser"));
+if (!storedUser) location.href="login.html";
+
+onAuthStateChanged(auth, async user => {
+  if (!user || user.uid !== storedUser.uid) location.href="login.html";
+
+  const snap = await getDoc(doc(db,"users",user.uid));
+  if (!snap.exists() || snap.data().model !== "Admin") {
+    alert("Unauthorized");
+    location.href="login.html";
+  }
+});
+
+/* ===== LOAD PENDING TASKS ===== */
+const container = document.getElementById("taskContainer");
+
+const q = query(
+  collection(db,"postedTasks"),
+  where("status","==","pending")
+);
+
+onSnapshot(q, snap => {
+  container.innerHTML="";
+  if (snap.empty) {
+    container.innerHTML="<p>No pending task approvals.</p>";
+    return;
+  }
+
+  snap.forEach(docSnap => {
+    const t = docSnap.data();
+    const id = docSnap.id;
+
+    const card = document.createElement("div");
+    card.className="card";
+    card.innerHTML=`
+      <h3>${t.platform} – ${t.type}</h3>
+      <div class="meta">
+        <b>Advertiser:</b> ${t.advertiserEmail}<br>
+        <b>Price:</b> ₦${t.price}<br>
+        <b>People:</b> ${t.amount}<br>
+        <b>Total:</b> ₦${t.total}<br>
+        <b>Link:</b> <a href="${t.link}" target="_blank">${t.link}</a><br>
+        <b>Proof:</b> ${t.proofTitle}
+      </div>
+      <div class="actions">
+        <button class="approve" onclick="approveTask('${id}')">Approve</button>
+        <button class="reject" onclick="rejectTask('${id}')">Reject</button>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+});
+
+/* ===== APPROVE ===== */
+window.approveTask = async id => {
+  const ref = doc(db,"postedTasks",id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+
+  const t = snap.data();
+
+  await setDoc(doc(db,"liveTasks",id),{
+    ...t,
+    status:"live",
+    remaining:t.amount,
+    approvedAt:serverTimestamp()
+  });
+
+  await updateDoc(ref,{status:"approved"});
+
+  await setDoc(doc(collection(db,"notifications")),{
+    email:t.advertiserEmail,
+    message:`✅ Your task (${t.platform}) is now live.`,
+    createdAt:serverTimestamp()
+  });
+
+  alert("Task approved");
+};
+
+/* ===== REJECT ===== */
+window.rejectTask = async id => {
+  const reason = prompt("Reason for rejection?");
+  if (!reason) return;
+
+  const ref = doc(db,"postedTasks",id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+
+  const t = snap.data();
+
+  await updateDoc(doc(db,"users",t.advertiserId),{
+    balance: increment(t.total)
+  });
+
+  await setDoc(doc(collection(db,"notifications")),{
+    email:t.advertiserEmail,
+    message:`❌ Task rejected: ${reason}. ₦${t.total} refunded.`,
+    createdAt:serverTimestamp()
+  });
+
+  await deleteDoc(ref);
+  alert("Task rejected and refunded");
+};
+</script>
+
+</body>
+  </html>
