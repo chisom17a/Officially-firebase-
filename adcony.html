@@ -14,45 +14,17 @@
 }
 *{box-sizing:border-box;font-family:Inter,sans-serif}
 body{margin:0;background:var(--bg)}
-header{
-  background:#fff;
-  padding:15px 25px;
-  font-weight:700;
-  color:var(--primary);
-}
-.container{
-  max-width:1000px;
-  margin:30px auto;
-  padding:20px;
-}
-.card{
-  background:#fff;
-  padding:20px;
-  border-radius:12px;
-  margin-bottom:20px;
-}
+header{background:#fff;padding:15px 25px;font-weight:700;color:var(--primary)}
+.container{max-width:1000px;margin:30px auto;padding:20px}
+.card{background:#fff;padding:20px;border-radius:12px;margin-bottom:20px}
 .meta{font-size:14px;color:#555;margin-bottom:10px}
-.actions{
-  display:flex;
-  gap:10px;
-  margin-top:15px;
-}
+.actions{display:flex;gap:10px;margin-top:15px}
 button{
-  padding:10px 16px;
-  border:none;
-  border-radius:8px;
-  font-weight:600;
-  cursor:pointer;
+  padding:10px 16px;border:none;border-radius:8px;
+  font-weight:600;cursor:pointer
 }
 .approve{background:var(--success);color:#fff}
 .reject{background:var(--danger);color:#fff}
-textarea{
-  width:100%;
-  padding:10px;
-  margin-top:10px;
-  border-radius:8px;
-  border:1px solid #ccc;
-}
 </style>
 </head>
 
@@ -61,128 +33,145 @@ textarea{
 <header>Admin – Task Approval</header>
 
 <div class="container" id="taskContainer"></div>
-  <button type="button" class="btn secondary" onclick="location.href='adminpanel.html'">Home</button>
 
-<script>
-/* ================= AUTH ================= */
-const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-const users = JSON.parse(localStorage.getItem("users")) || [];
+<button onclick="location.href='adminpanel.html'">Home</button>
 
-if(!currentUser) location.href="login.html";
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  onSnapshot,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  increment,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
-const admin = users.find(
-  u=>u.email===currentUser.email && u.model==="Admin"
-);
-if(!admin){
-  alert("Unauthorized access");
-  location.href="login.html";
-}
+/* ===== FIREBASE ===== */
+const firebaseConfig = {
+  apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
+  authDomain: "chiearnhub-5ba9e.firebaseapp.com",
+  projectId: "chiearnhub-5ba9e",
+  storageBucket: "chiearnhub-5ba9e.firebasestorage.app",
+  messagingSenderId: "332513744974",
+  appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
+};
 
-/* ================= DATA ================= */
-let postedTasks = JSON.parse(localStorage.getItem("postedTasks")) || [];
-let liveTasks = JSON.parse(localStorage.getItem("tasks")) || [];
-let notifications = JSON.parse(localStorage.getItem("notifications")) || [];
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
+/* ===== AUTH CHECK ===== */
+const storedUser = JSON.parse(localStorage.getItem("currentUser"));
+if (!storedUser) location.href="login.html";
+
+onAuthStateChanged(auth, async user => {
+  if (!user || user.uid !== storedUser.uid) location.href="login.html";
+
+  const snap = await getDoc(doc(db,"users",user.uid));
+  if (!snap.exists() || snap.data().model !== "Admin") {
+    alert("Unauthorized");
+    location.href="login.html";
+  }
+});
+
+/* ===== LOAD PENDING TASKS ===== */
 const container = document.getElementById("taskContainer");
 
-/* ================= RENDER ================= */
-function render(){
-  container.innerHTML="";
-  const pending = postedTasks.filter(t=>t.status==="pending");
+const q = query(
+  collection(db,"postedTasks"),
+  where("status","==","pending")
+);
 
-  if(pending.length===0){
+onSnapshot(q, snap => {
+  container.innerHTML="";
+  if (snap.empty) {
     container.innerHTML="<p>No pending task approvals.</p>";
     return;
   }
 
-  pending.forEach(task=>{
-    const card=document.createElement("div");
+  snap.forEach(docSnap => {
+    const t = docSnap.data();
+    const id = docSnap.id;
+
+    const card = document.createElement("div");
     card.className="card";
     card.innerHTML=`
-      <h3>${task.platform} – ${task.type}</h3>
+      <h3>${t.platform} – ${t.type}</h3>
       <div class="meta">
-        <b>Advertiser:</b> ${task.advertiserEmail}<br>
-        <b>Price per person:</b> ₦${task.price}<br>
-        <b>People:</b> ${task.amount}<br>
-        <b>Total:</b> ₦${task.total}<br>
-        <b>Link:</b> <a href="${task.link}" target="_blank">${task.link}</a><br>
-        <b>Proof Required:</b> ${task.proofTitle}
+        <b>Advertiser:</b> ${t.advertiserEmail}<br>
+        <b>Price:</b> ₦${t.price}<br>
+        <b>People:</b> ${t.amount}<br>
+        <b>Total:</b> ₦${t.total}<br>
+        <b>Link:</b> <a href="${t.link}" target="_blank">${t.link}</a><br>
+        <b>Proof:</b> ${t.proofTitle}
       </div>
-
       <div class="actions">
-        <button class="approve" onclick="approveTask('${task.id}')">Approve</button>
-        <button class="reject" onclick="rejectTask('${task.id}')">Reject</button>
+        <button class="approve" onclick="approveTask('${id}')">Approve</button>
+        <button class="reject" onclick="rejectTask('${id}')">Reject</button>
       </div>
     `;
     container.appendChild(card);
   });
-}
-render();
+});
 
-/* ================= APPROVE ================= */
-function approveTask(id){
-  const task = postedTasks.find(t=>t.id===id);
-  if(!task) return;
+/* ===== APPROVE ===== */
+window.approveTask = async id => {
+  const ref = doc(db,"postedTasks",id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
 
-  // Add to live tasks for earners
-  liveTasks.push({
-    id: task.id,
-    title: `${task.platform} – ${task.type}`,
-    reward: task.price,
-    link: task.link,
-    proofTitle: task.proofTitle,
-    advertiserEmail: task.advertiserEmail
+  const t = snap.data();
+
+  await setDoc(doc(db,"liveTasks",id),{
+    ...t,
+    status:"live",
+    remaining:t.amount,
+    approvedAt:serverTimestamp()
   });
 
-  task.status="approved";
-  task.reviewedAt=new Date().toISOString();
+  await updateDoc(ref,{status:"approved"});
 
-  notifications.push({
-    email: task.advertiserEmail,
-    message: `✅ Your task (${task.platform} - ${task.type}) has been approved and is now live.`,
-    date:new Date().toISOString()
+  await setDoc(doc(collection(db,"notifications")),{
+    email:t.advertiserEmail,
+    message:`✅ Your task (${t.platform}) is now live.`,
+    createdAt:serverTimestamp()
   });
 
-  saveAll();
-  alert("Task approved and published");
-  render();
-}
+  alert("Task approved");
+};
 
-/* ================= REJECT ================= */
-function rejectTask(id){
-  const reason = prompt("Why are you rejecting this task?");
-  if(!reason) return;
+/* ===== REJECT ===== */
+window.rejectTask = async id => {
+  const reason = prompt("Reason for rejection?");
+  if (!reason) return;
 
-  const task = postedTasks.find(t=>t.id===id);
-  if(!task) return;
+  const ref = doc(db,"postedTasks",id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
 
-  const advertiser = users.find(u=>u.email===task.advertiserEmail);
-  if(advertiser){
-    advertiser.balance = (advertiser.balance || 0) + task.total;
-  }
+  const t = snap.data();
 
-  task.status="rejected";
-  task.rejectionReason=reason;
-  task.reviewedAt=new Date().toISOString();
-
-  notifications.push({
-    email: task.advertiserEmail,
-    message: `❌ Your task was rejected. Reason: ${reason}. ₦${task.total} has been refunded.`,
-    date:new Date().toISOString()
+  await updateDoc(doc(db,"users",t.advertiserId),{
+    balance: increment(t.total)
   });
 
-  saveAll();
+  await setDoc(doc(collection(db,"notifications")),{
+    email:t.advertiserEmail,
+    message:`❌ Task rejected: ${reason}. ₦${t.total} refunded.`,
+    createdAt:serverTimestamp()
+  });
+
+  await deleteDoc(ref);
   alert("Task rejected and refunded");
-  render();
-}
-
-/* ================= SAVE ================= */
-function saveAll(){
-  localStorage.setItem("postedTasks",JSON.stringify(postedTasks));
-  localStorage.setItem("tasks",JSON.stringify(liveTasks));
-  localStorage.setItem("users",JSON.stringify(users));
-  localStorage.setItem("notifications",JSON.stringify(notifications));
-}
+};
 </script>
 
 </body>
