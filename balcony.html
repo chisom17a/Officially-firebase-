@@ -36,11 +36,7 @@ header{
   box-shadow:0 4px 12px rgba(0,0,0,.1);
 }
 
-label{
-  font-weight:600;
-  display:block;
-  margin-top:15px;
-}
+label{font-weight:600;display:block;margin-top:15px}
 
 input,select{
   width:100%;
@@ -64,7 +60,8 @@ button{
   cursor:pointer;
 }
 
-button:hover{background:#1e40af}
+.secondary{background:#475569}
+button:hover{opacity:.9}
 
 .message{
   margin-top:15px;
@@ -94,81 +91,119 @@ button:hover{background:#1e40af}
   <label>Amount (₦)</label>
   <input type="number" id="amount" min="1" placeholder="Enter amount">
 
-  <button onclick="processBalance()">Proceed</button>
-  <button type="button" class="btn secondary" onclick="location.href='adminpanel.html'">Home</button>
+  <button id="processBtn">Proceed</button>
+  <button class="secondary" onclick="location.href='adminpanel.html'">Home</button>
 
   <div id="msg" class="message"></div>
 </div>
 
-<script>
-/* ===============================
-   ADMIN AUTH CHECK
-================================ */
-const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-const users = JSON.parse(localStorage.getItem("users")) || [];
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  getDoc,
+  updateDoc,
+  increment
+} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
-if(!currentUser){
-  alert("Please login first");
-  location.href="login.html";
+/* ===== FIREBASE CONFIG ===== */
+const firebaseConfig = {
+  apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
+  authDomain: "chiearnhub-5ba9e.firebaseapp.com",
+  projectId: "chiearnhub-5ba9e",
+  storageBucket: "chiearnhub-5ba9e.firebasestorage.app",
+  messagingSenderId: "332513744974",
+  appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+/* ===== ADMIN AUTH CHECK (SAME AS adminpanel.html) ===== */
+const storedUser = JSON.parse(localStorage.getItem("currentUser"));
+
+if (!storedUser) {
+  location.href = "login.html";
 }
 
-const admin = users.find(
-  u => u.email === currentUser.email && u.model === "Admin"
-);
+onAuthStateChanged(auth, async user => {
+  if (!user || user.uid !== storedUser.uid) {
+    location.href = "login.html";
+    return;
+  }
 
-if(!admin){
-  alert("Unauthorized access");
-  location.href="login.html";
-}
+  const snap = await getDoc(doc(db, "users", user.uid));
+  if (!snap.exists() || snap.data().model !== "Admin") {
+    alert("Unauthorized access");
+    location.href = "login.html";
+  }
+});
 
-/* ===============================
-   PROCESS BALANCE
-================================ */
-function processBalance(){
-  const email = document.getElementById("email").value.trim().toLowerCase();
-  const action = document.getElementById("action").value;
-  const amount = parseFloat(document.getElementById("amount").value);
-  const msg = document.getElementById("msg");
-
-  msg.innerHTML = "";
+/* ===== PROCESS BALANCE ===== */
+const msg = document.getElementById("msg");
+document.getElementById("processBtn").onclick = async () => {
+  msg.textContent = "";
   msg.className = "message";
 
-  if(!email || !action || isNaN(amount) || amount <= 0){
+  const email = document.getElementById("email").value.trim().toLowerCase();
+  const action = document.getElementById("action").value;
+  const amount = Number(document.getElementById("amount").value);
+
+  if (!email || !action || amount <= 0) {
     msg.textContent = "Please fill all fields correctly.";
     msg.classList.add("error");
     return;
   }
 
-  const user = users.find(u => u.email.toLowerCase() === email);
+  try {
+    const q = query(
+      collection(db, "users"),
+      where("email", "==", email)
+    );
 
-  if(!user){
-    msg.textContent = "User email not found.";
-    msg.classList.add("error");
-    return;
-  }
+    const snap = await getDocs(q);
 
-  user.balance = user.balance || 0;
-
-  if(action === "decrease"){
-    if(user.balance < amount){
-      msg.textContent = `Insufficient balance. User has ₦${user.balance}`;
+    if (snap.empty) {
+      msg.textContent = "User not found.";
       msg.classList.add("error");
       return;
     }
-    user.balance -= amount;
+
+    const userDoc = snap.docs[0];
+    const userData = userDoc.data();
+    const userRef = doc(db, "users", userDoc.id);
+
+    const currentBalance = userData.balance || 0;
+
+    if (action === "decrease" && currentBalance < amount) {
+      msg.textContent = `Insufficient balance. User has ₦${currentBalance}`;
+      msg.classList.add("error");
+      return;
+    }
+
+    await updateDoc(userRef, {
+      balance: increment(action === "increase" ? amount : -amount)
+    });
+
+    msg.textContent = `Balance updated successfully.`;
+    msg.classList.add("success");
+
+    document.getElementById("amount").value = "";
+
+  } catch (err) {
+    msg.textContent = "Error updating balance.";
+    msg.classList.add("error");
+    console.error(err);
   }
-
-  if(action === "increase"){
-    user.balance += amount;
-  }
-
-  localStorage.setItem("users", JSON.stringify(users));
-
-  msg.textContent = `Balance updated successfully. New balance: ₦${user.balance}`;
-  msg.classList.add("success");
-
-  document.getElementById("amount").value = "";
-}
+};
 </script>
 
 </body>
