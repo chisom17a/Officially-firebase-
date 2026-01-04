@@ -246,7 +246,7 @@ window.submitTask = async () => {
 
   // This is the part that creates the 'tasks' collection if it doesn't exist
   // and adds a new document with the task details, including the userId.
-  await addDoc(collection(db,"postedtasks"),{
+  await addDoc(collection(db,"tasks"),{
     userId: currentUser.uid, // User ID is included here
     platform: platform.value,
     type: type.value,
