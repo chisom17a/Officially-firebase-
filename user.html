@@ -9,22 +9,28 @@
 <style>
 *{box-sizing:border-box;font-family:Poppins,sans-serif}
 body{margin:0;background:#f2f5fb}
+
 header{
   background:#1e293b;color:#fff;
   padding:15px 25px;font-size:20px;font-weight:600
 }
+
 .container{max-width:1100px;margin:30px auto}
+
 input{
   width:100%;padding:12px;margin-bottom:15px;
   border-radius:8px;border:1px solid #ccc
 }
+
 table{
   width:100%;border-collapse:collapse;background:#fff;
   border-radius:10px;overflow:hidden
 }
+
 th,td{padding:14px;font-size:14px}
 th{background:#1e293b;color:#fff}
 tr:nth-child(even){background:#f1f5f9}
+
 .nav{
   display:flex;gap:10px;margin-bottom:15px
 }
@@ -32,6 +38,15 @@ tr:nth-child(even){background:#f1f5f9}
   padding:10px 15px;border:none;border-radius:6px;
   background:#0d6efd;color:#fff;cursor:pointer
 }
+
+.pagination{
+  display:flex;justify-content:center;gap:10px;margin-top:20px
+}
+.pagination button{
+  padding:8px 14px;border:none;border-radius:6px;
+  background:#1e293b;color:#fff;cursor:pointer
+}
+.pagination span{align-self:center;font-weight:600}
 </style>
 </head>
 
@@ -62,45 +77,119 @@ tr:nth-child(even){background:#f1f5f9}
     <tbody id="userTable"></tbody>
   </table>
 
+  <div class="pagination">
+    <button id="prevBtn">Prev</button>
+    <span id="pageInfo">1</span>
+    <button id="nextBtn">Next</button>
+  </div>
+
 </div>
 
-<script>
-/* AUTH */
-const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-const users = JSON.parse(localStorage.getItem("users")) || [];
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import { getFirestore, collection, onSnapshot, doc, getDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
-if(!currentUser || currentUser.model !== "Admin"){
-  location.href="login.html";
+/* ===== FIREBASE CONFIG ===== */
+const firebaseConfig = {
+  apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
+  authDomain: "chiearnhub-5ba9e.firebaseapp.com",
+  projectId: "chiearnhub-5ba9e",
+  storageBucket: "chiearnhub-5ba9e.firebasestorage.app",
+  messagingSenderId: "332513744974",
+  appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+/* ===== ADMIN AUTH CHECK (SAME LOGIC AS adminpanel.html) ===== */
+const storedUser = JSON.parse(localStorage.getItem("currentUser"));
+
+if (!storedUser) {
+  location.href = "login.html";
 }
 
-const table = document.getElementById("userTable");
+onAuthStateChanged(auth, async user => {
+  if (!user || user.uid !== storedUser.uid) {
+    location.href = "login.html";
+    return;
+  }
 
-function loadUsers(filter=""){
-  table.innerHTML="";
-  users
-    .filter(u =>
-      u.email.toLowerCase().includes(filter.toLowerCase()) ||
-      (u.phone||"").includes(filter)
-    )
-    .forEach(u=>{
-      table.innerHTML += `
-        <tr>
-          <td>${u.email}</td>
-          <td>${u.username || "-"}</td>
-          <td>${u.phone || "-"}</td>
-          <td>${u.model}</td>
-          <td>₦${u.balance || 0}</td>
-          <td>${u.activated ? "Yes" : "No"}</td>
-        </tr>
-      `;
-    });
-}
-
-loadUsers();
-
-document.getElementById("search").addEventListener("input",e=>{
-  loadUsers(e.target.value);
+  const snap = await getDoc(doc(db, "users", user.uid));
+  if (!snap.exists() || snap.data().model !== "Admin") {
+    alert("Unauthorized");
+    location.href = "login.html";
+  }
 });
+
+/* ===== USERS + PAGINATION ===== */
+const table = document.getElementById("userTable");
+const searchInput = document.getElementById("search");
+const prevBtn = document.getElementById("prevBtn");
+const nextBtn = document.getElementById("nextBtn");
+const pageInfo = document.getElementById("pageInfo");
+
+let users = [];
+let currentPage = 1;
+const pageSize = 10;
+
+function renderTable() {
+  table.innerHTML = "";
+
+  const filter = searchInput.value.toLowerCase();
+  const filtered = users.filter(u =>
+    (u.email || "").toLowerCase().includes(filter) ||
+    (u.phone || "").includes(filter)
+  );
+
+  const start = (currentPage - 1) * pageSize;
+  const pageUsers = filtered.slice(start, start + pageSize);
+
+  pageUsers.forEach(u => {
+    table.innerHTML += `
+      <tr>
+        <td>${u.email || "-"}</td>
+        <td>${u.username || "-"}</td>
+        <td>${u.phone || "-"}</td>
+        <td>${u.model}</td>
+        <td>₦${u.balance || 0}</td>
+        <td>${u.activated ? "Yes" : "No"}</td>
+      </tr>
+    `;
+  });
+
+  pageInfo.textContent = `Page ${currentPage}`;
+  prevBtn.disabled = currentPage === 1;
+  nextBtn.disabled = start + pageSize >= filtered.length;
+}
+
+/* ===== REAL-TIME USERS ===== */
+onSnapshot(query(collection(db, "users"), orderBy("email")), snap => {
+  users = snap.docs.map(d => d.data());
+  currentPage = 1;
+  renderTable();
+});
+
+/* ===== EVENTS ===== */
+searchInput.addEventListener("input", () => {
+  currentPage = 1;
+  renderTable();
+});
+
+prevBtn.onclick = () => {
+  if (currentPage > 1) {
+    currentPage--;
+    renderTable();
+  }
+};
+
+nextBtn.onclick = () => {
+  currentPage++;
+  renderTable();
+};
 </script>
 
 </body>
