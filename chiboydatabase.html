@@ -1,0 +1,323 @@
+<!DOCTYPE html>  
+<html lang="en">  
+<head>  
+  <meta charset="UTF-8" />  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />  
+  <title>chiboydatabase- official introduction</title>  
+  <style>  
+    /* ====== BASIC RESET ====== */  
+    * {  
+      margin: 0;  
+      padding: 0;  
+      box-sizing: border-box;  
+      scroll-behavior: smooth;  
+    }  
+  
+    body {  
+      font-family: "Poppins", sans-serif;  
+      color: #f2f2f2;  
+      background-color: #0c0c0c;  
+      overflow-x: hidden;  
+    }  
+  
+    /* ====== HEADER ====== */  
+    header {  
+      background: linear-gradient(90deg, #111, #222);  
+      padding: 1.5rem 2rem;  
+      display: flex;  
+      justify-content: space-between;  
+      align-items: center;  
+      position: sticky;  
+      top: 0;  
+      z-index: 1000;  
+    }  
+  
+    header h1 {  
+      font-size: 1.5rem;  
+      color: #e50914;  
+      font-weight: 700;  
+    }  
+  
+    nav a {  
+      color: #fff;  
+      margin-left: 1.5rem;  
+      text-decoration: none;  
+      font-weight: 500;  
+      transition: color 0.3s;  
+      cursor: pointer;  
+    }  
+  
+    nav a:hover {  
+      color: #e50914;  
+    }  
+  
+    /* ====== HERO SECTION ====== */  
+    .hero {  
+      background: url('https://images.unsplash.com/photo-1503387762-592deb58ef4e') center/cover no-repeat;  
+      height: 90vh;  
+      display: flex;  
+      align-items: center;  
+      justify-content: center;  
+      flex-direction: column;  
+      text-align: center;  
+      color: #fff;  
+      position: relative;  
+    }  
+  
+    .hero::after {  
+      content: "";  
+      position: absolute;  
+      top: 0; left: 0; right: 0; bottom: 0;  
+      background: rgba(0, 0, 0, 0.6);  
+    }  
+  
+    .hero-content {  
+      position: relative;  
+      z-index: 2;  
+      animation: fadeInUp 1.5s ease-out;  
+    }  
+  
+    .hero-content h2 {  
+      font-size: 2.5rem;  
+      margin-bottom: 1rem;  
+    }  
+  
+    .hero-content p {  
+      font-size: 1.1rem;  
+      max-width: 700px;  
+      margin: 0 auto;  
+      line-height: 1.6;  
+    }  
+  
+    /* ====== ABOUT SECTION ====== */  
+    section {  
+      padding: 4rem 2rem;  
+      max-width: 1100px;  
+      margin: 0 auto;  
+    }  
+  
+    .about {  
+      text-align: center;  
+      opacity: 0;  
+      transform: translateY(50px);  
+      transition: all 0.8s ease;  
+    }  
+  
+    .about.visible {  
+      opacity: 1;  
+      transform: translateY(0);  
+    }  
+  
+    .about h3 {  
+      color: #e50914;  
+      font-size: 1.8rem;  
+      margin-bottom: 1rem;  
+    }  
+  
+    .about p {  
+      color: #ddd;  
+      font-size: 1rem;  
+      line-height: 1.7;  
+    }  
+  
+    /* ====== BUTTON ====== */  
+    .cta {  
+      display: flex;  
+      justify-content: center;  
+      margin: 3rem 0;  
+    }  
+  
+    .cta a {  
+      background: #e50914;  
+      color: #fff;  
+      padding: 1rem 2rem;  
+      border-radius: 10px;  
+      text-decoration: none;  
+      font-weight: 600;  
+      transition: background 0.3s;  
+    }  
+  
+    .cta a:hover {  
+      background: #b20610;  
+    }  
+  
+    /* ====== FOOTER ====== */  
+    footer {  
+      background: #1a1a1a;  
+      text-align: center;  
+      padding: 2rem 1rem;  
+      color: #ccc;  
+    }  
+  
+    .social-icons {  
+      margin-top: 1rem;  
+    }  
+  
+    .social-icons a {  
+      margin: 0 10px;  
+      color: #fff;  
+      text-decoration: none;  
+      font-size: 1.5rem;  
+      transition: color 0.3s;  
+    }  
+  
+    .social-icons a:hover {  
+      color: #e50914;  
+    }  
+  
+    /* ====== POPUP ====== */  
+    .popup {  
+      position: fixed;  
+      top: 0;  
+      left: 0;  
+      width: 100%;  
+      height: 100%;  
+      background: rgba(0, 0, 0, 0.8);  
+      display: flex;  
+      justify-content: center;  
+      align-items: center;  
+      visibility: hidden;  
+      opacity: 0;  
+      transition: all 0.4s ease;  
+      z-index: 2000;  
+    }  
+  
+    .popup.active {  
+      visibility: visible;  
+      opacity: 1;  
+    }  
+  
+    .popup-content {  
+      background: #1a1a1a;  
+      padding: 2rem;  
+      border-radius: 15px;  
+      text-align: center;  
+      max-width: 400px;  
+      width: 90%;  
+      position: relative;  
+      animation: fadeInUp 0.8s ease;  
+    }  
+  
+    .popup-content h4 {  
+      color: #e50914;  
+      margin-bottom: 1rem;  
+    }  
+  
+    .popup-content img {  
+      width: 45px;  
+      margin: 10px;  
+      cursor: pointer;  
+      transition: transform 0.3s;  
+    }  
+  
+    .popup-content img:hover {  
+      transform: scale(1.1);  
+    }  
+  
+    .close-popup {  
+      position: absolute;  
+      top: 10px;  
+      right: 15px;  
+      color: #fff;  
+      font-size: 1.5rem;  
+      cursor: pointer;  
+    }  
+  
+    /* ====== ANIMATIONS ====== */  
+    @keyframes fadeInUp {  
+      from { opacity: 0; transform: translateY(50px); }  
+      to { opacity: 1; transform: translateY(0); }  
+    }  
+  </style>  
+</head>  
+<body>  
+  
+  <!-- ===== HEADER ===== -->  
+  <header>  
+    <h1>chiboydatabase</h1>  
+    <nav>  
+      <a href="#about">About</a>  
+      <a href="#mission">Mission</a>  
+      <a id="contactBtn">Contact</a>  
+    </nav>  
+  </header>  
+  
+  <!-- ===== HERO ===== -->  
+  <section class="hero">  
+    <div class="hero-content">  
+      <h2>who are we</h2>  
+      <p>chiboydatabase is a proud Nigerian organisation that is determined to move the world forward.</p>  
+    </div>  
+  </section>  
+  
+  <!-- ===== ABOUT ===== -->  
+  <section id="about" class="about">  
+    <h3>our service</h3>  
+    <p>  
+      chiboydatabase is a platform wgere users can : earn by performing simple social media task like ( liking, subscribing, commenting, signingup, posting and so on) and earn cool income . also people stand a chance to get real humans to complete different social media task for them.  
+    </p>  
+  </section>  
+  
+  <section id="mission" class="about">  
+    <h3>Our Mission</h3>  
+    <p>  
+      To serve Nigerians with the best, affordable, fast and reliable platform   
+    </p>  
+  </section>  
+  
+  <!-- ===== JOIN US BUTTON ===== -->  
+  <div class="cta">  
+<a href="index.html" target="_blank">Join Us →</a>
+  </div>  
+  
+  <!-- ===== FOOTER ===== -->  
+  <footer>  
+    <p>© 2025 chiboydatabase All rights reserved.</p>  
+    <div class="social-icons">  
+      <a href="https://facebook.com" target="_blank">🌐</a>  
+      <a href="https://instagram.com" target="_blank">📷</a>  
+      <a href="https://x.com" target="_blank">✖️</a>  
+    </div>  
+  </footer>  
+  
+  <!-- ===== POPUP CONTACT ===== -->  
+  <div class="popup" id="contactPopup">  
+    <div class="popup-content">  
+      <span class="close-popup" id="closePopup">&times;</span>  
+      <h4>Kindly contact us using any of the social buttons below</h4>  
+      <div>  
+        <a href="https://facebook.com/chiboydatabase" target="_blank"><img src="https://cdn-icons-png.flaticon.com/512/733/733547.png" alt="Facebook"></a>  
+        <a href="https://instagram.com/chiboydatabase" target="_blank"><img src="https://cdn-icons-png.flaticon.com/512/2111/2111463.png" alt="Instagram"></a>  
+        <a href="https://x.com/chiboydatabase" target="_blank"><img src="https://cdn-icons-png.flaticon.com/512/5968/5968830.png" alt="X"></a>  
+        <a href="https://wa.me/2347064173933" target="_blank"><img src="https://cdn-icons-png.flaticon.com/512/733/733585.png" alt="WhatsApp"></a>  
+        <a href="https://t.me/chiboydatabaseorg" target="_blank"><img src="https://cdn-icons-png.flaticon.com/512/2111/2111646.png" alt="Telegram"></a>  
+        <a href="https://youtube.com/@chiboymovieboss" target="_blank"><img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png" alt="YouTube"></a>  
+      </div>  
+    </div>  
+  </div>  
+  
+  <!-- ===== SCROLL ANIMATION + POPUP SCRIPT ===== -->  
+  <script>  
+    // Scroll animation  
+    const elements = document.querySelectorAll('.about');  
+    const observer = new IntersectionObserver((entries) => {  
+      entries.forEach(entry => {  
+        if (entry.isIntersecting) entry.target.classList.add('visible');  
+      });  
+    }, { threshold: 0.2 });  
+    elements.forEach(el => observer.observe(el));  
+  
+    // Popup  
+    const contactBtn = document.getElementById('contactBtn');  
+    const popup = document.getElementById('contactPopup');  
+    const closePopup = document.getElementById('closePopup');  
+  
+    contactBtn.addEventListener('click', () => popup.classList.add('active'));  
+    closePopup.addEventListener('click', () => popup.classList.remove('active'));  
+    window.addEventListener('click', (e) => {  
+      if (e.target === popup) popup.classList.remove('active');  
+    });  
+  </script>  
+  
+</body>  
+</html>

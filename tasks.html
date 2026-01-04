@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chiearn Hub - Tasks</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --primary:#0d6efd;
+  --bg:#f4f7fa;
+  --white:#fff;
+}
+*{box-sizing:border-box;font-family:Inter}
+body{margin:0;background:var(--bg)}
+header{background:#fff;padding:15px;font-weight:600}
+.container{max-width:900px;margin:auto;padding:25px}
+.task-row{
+  display:grid;
+  grid-template-columns:1fr 120px 120px;
+  background:#fff;
+  padding:15px;
+  margin-bottom:10px;
+  border-radius:10px;
+}
+.perform-btn{
+  background:var(--primary);
+  color:#fff;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+.perform-btn:disabled{
+  background:#94a3b8;
+}
+</style>
+</head>
+
+<body>
+
+<header>Chiearn Hub</header>
+  
+<button class="btn" onclick="location.href='earner.html'">Home</button>
+
+<div class="container">
+  <h2>Available Tasks</h2>
+  <div id="taskList"></div>
+</div>
+
+<script>
+const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+const users = JSON.parse(localStorage.getItem("users")) || [];
+
+if(!currentUser) location.href="login.html";
+
+const user = users.find(u=>u.email===currentUser.email && u.model==="Earner");
+if(!user) location.href="login.html";
+
+const tasks = [
+ {id:1,title:"Follow Instagram Page",reward:30,link:"https://instagram.com/chiboydatabase",count:100,requirements:"Screenshot proof"},
+ {id:2,title:"Join Telegram Channel",reward:20,link:"https://t.me/glitz_media",count:200,requirements:"Telegram join proof"},
+ {id:3,title:"Like & Comment",reward:40,link:"https://facebook.com/chiboydatabase",count:50,requirements:"Comment screenshot"}
+];
+
+const activities = JSON.parse(localStorage.getItem("taskSubmissions")) || [];
+
+function renderTasks(){
+ const list=document.getElementById("taskList");
+ list.innerHTML="";
+ tasks.forEach(task=>{
+   const done=activities.some(a=>a.userId===user.id && a.taskId===task.id);
+   list.innerHTML+=`
+    <div class="task-row">
+      <div>${task.title}</div>
+      <div>₦${task.reward}</div>
+      <button class="perform-btn" ${done?"disabled":""}
+        onclick="location.href='task.html?id=${task.id}'">
+        ${done?"Pending":"Perform"}
+      </button>
+    </div>`;
+ });
+}
+renderTasks();
+</script>
+
+</body>
+</html>

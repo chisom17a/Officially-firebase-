@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>User Balance Manager - Admin</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --primary:#2563eb;
+  --danger:#dc2626;
+  --success:#16a34a;
+  --bg:#f4f7fa;
+  --white:#fff;
+}
+*{box-sizing:border-box;font-family:Inter}
+body{margin:0;background:var(--bg)}
+
+header{
+  background:var(--white);
+  padding:15px 25px;
+  font-size:22px;
+  font-weight:700;
+  color:var(--primary);
+  box-shadow:0 2px 8px rgba(0,0,0,.1);
+}
+
+.container{
+  max-width:500px;
+  margin:50px auto;
+  background:var(--white);
+  padding:25px;
+  border-radius:12px;
+  box-shadow:0 4px 12px rgba(0,0,0,.1);
+}
+
+label{
+  font-weight:600;
+  display:block;
+  margin-top:15px;
+}
+
+input,select{
+  width:100%;
+  padding:12px;
+  margin-top:6px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  font-size:15px;
+}
+
+button{
+  width:100%;
+  padding:14px;
+  margin-top:20px;
+  border:none;
+  border-radius:8px;
+  background:var(--primary);
+  color:#fff;
+  font-weight:600;
+  font-size:16px;
+  cursor:pointer;
+}
+
+button:hover{background:#1e40af}
+
+.message{
+  margin-top:15px;
+  font-weight:600;
+  text-align:center;
+}
+.success{color:var(--success)}
+.error{color:var(--danger)}
+</style>
+</head>
+
+<body>
+
+<header>Admin – User Balance Control</header>
+
+<div class="container">
+  <label>User Email</label>
+  <input type="email" id="email" placeholder="Enter user email">
+
+  <label>Action</label>
+  <select id="action">
+    <option value="">Select Action</option>
+    <option value="increase">Increase Balance</option>
+    <option value="decrease">Decrease Balance</option>
+  </select>
+
+  <label>Amount (₦)</label>
+  <input type="number" id="amount" min="1" placeholder="Enter amount">
+
+  <button onclick="processBalance()">Proceed</button>
+  <button type="button" class="btn secondary" onclick="location.href='adminpanel.html'">Home</button>
+
+  <div id="msg" class="message"></div>
+</div>
+
+<script>
+/* ===============================
+   ADMIN AUTH CHECK
+================================ */
+const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+const users = JSON.parse(localStorage.getItem("users")) || [];
+
+if(!currentUser){
+  alert("Please login first");
+  location.href="login.html";
+}
+
+const admin = users.find(
+  u => u.email === currentUser.email && u.model === "Admin"
+);
+
+if(!admin){
+  alert("Unauthorized access");
+  location.href="login.html";
+}
+
+/* ===============================
+   PROCESS BALANCE
+================================ */
+function processBalance(){
+  const email = document.getElementById("email").value.trim().toLowerCase();
+  const action = document.getElementById("action").value;
+  const amount = parseFloat(document.getElementById("amount").value);
+  const msg = document.getElementById("msg");
+
+  msg.innerHTML = "";
+  msg.className = "message";
+
+  if(!email || !action || isNaN(amount) || amount <= 0){
+    msg.textContent = "Please fill all fields correctly.";
+    msg.classList.add("error");
+    return;
+  }
+
+  const user = users.find(u => u.email.toLowerCase() === email);
+
+  if(!user){
+    msg.textContent = "User email not found.";
+    msg.classList.add("error");
+    return;
+  }
+
+  user.balance = user.balance || 0;
+
+  if(action === "decrease"){
+    if(user.balance < amount){
+      msg.textContent = `Insufficient balance. User has ₦${user.balance}`;
+      msg.classList.add("error");
+      return;
+    }
+    user.balance -= amount;
+  }
+
+  if(action === "increase"){
+    user.balance += amount;
+  }
+
+  localStorage.setItem("users", JSON.stringify(users));
+
+  msg.textContent = `Balance updated successfully. New balance: ₦${user.balance}`;
+  msg.classList.add("success");
+
+  document.getElementById("amount").value = "";
+}
+</script>
+
+</body>
+</html>

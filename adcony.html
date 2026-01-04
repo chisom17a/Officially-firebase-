@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin – Task Approval</title>
+
+<style>
+:root{
+  --primary:#0d6efd;
+  --success:#16a34a;
+  --danger:#dc2626;
+  --bg:#f4f7fa;
+  --white:#fff;
+}
+*{box-sizing:border-box;font-family:Inter,sans-serif}
+body{margin:0;background:var(--bg)}
+header{
+  background:#fff;
+  padding:15px 25px;
+  font-weight:700;
+  color:var(--primary);
+}
+.container{
+  max-width:1000px;
+  margin:30px auto;
+  padding:20px;
+}
+.card{
+  background:#fff;
+  padding:20px;
+  border-radius:12px;
+  margin-bottom:20px;
+}
+.meta{font-size:14px;color:#555;margin-bottom:10px}
+.actions{
+  display:flex;
+  gap:10px;
+  margin-top:15px;
+}
+button{
+  padding:10px 16px;
+  border:none;
+  border-radius:8px;
+  font-weight:600;
+  cursor:pointer;
+}
+.approve{background:var(--success);color:#fff}
+.reject{background:var(--danger);color:#fff}
+textarea{
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+  border-radius:8px;
+  border:1px solid #ccc;
+}
+</style>
+</head>
+
+<body>
+
+<header>Admin – Task Approval</header>
+
+<div class="container" id="taskContainer"></div>
+  <button type="button" class="btn secondary" onclick="location.href='adminpanel.html'">Home</button>
+
+<script>
+/* ================= AUTH ================= */
+const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+const users = JSON.parse(localStorage.getItem("users")) || [];
+
+if(!currentUser) location.href="login.html";
+
+const admin = users.find(
+  u=>u.email===currentUser.email && u.model==="Admin"
+);
+if(!admin){
+  alert("Unauthorized access");
+  location.href="login.html";
+}
+
+/* ================= DATA ================= */
+let postedTasks = JSON.parse(localStorage.getItem("postedTasks")) || [];
+let liveTasks = JSON.parse(localStorage.getItem("tasks")) || [];
+let notifications = JSON.parse(localStorage.getItem("notifications")) || [];
+
+const container = document.getElementById("taskContainer");
+
+/* ================= RENDER ================= */
+function render(){
+  container.innerHTML="";
+  const pending = postedTasks.filter(t=>t.status==="pending");
+
+  if(pending.length===0){
+    container.innerHTML="<p>No pending task approvals.</p>";
+    return;
+  }
+
+  pending.forEach(task=>{
+    const card=document.createElement("div");
+    card.className="card";
+    card.innerHTML=`
+      <h3>${task.platform} – ${task.type}</h3>
+      <div class="meta">
+        <b>Advertiser:</b> ${task.advertiserEmail}<br>
+        <b>Price per person:</b> ₦${task.price}<br>
+        <b>People:</b> ${task.amount}<br>
+        <b>Total:</b> ₦${task.total}<br>
+        <b>Link:</b> <a href="${task.link}" target="_blank">${task.link}</a><br>
+        <b>Proof Required:</b> ${task.proofTitle}
+      </div>
+
+      <div class="actions">
+        <button class="approve" onclick="approveTask('${task.id}')">Approve</button>
+        <button class="reject" onclick="rejectTask('${task.id}')">Reject</button>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+render();
+
+/* ================= APPROVE ================= */
+function approveTask(id){
+  const task = postedTasks.find(t=>t.id===id);
+  if(!task) return;
+
+  // Add to live tasks for earners
+  liveTasks.push({
+    id: task.id,
+    title: `${task.platform} – ${task.type}`,
+    reward: task.price,
+    link: task.link,
+    proofTitle: task.proofTitle,
+    advertiserEmail: task.advertiserEmail
+  });
+
+  task.status="approved";
+  task.reviewedAt=new Date().toISOString();
+
+  notifications.push({
+    email: task.advertiserEmail,
+    message: `✅ Your task (${task.platform} - ${task.type}) has been approved and is now live.`,
+    date:new Date().toISOString()
+  });
+
+  saveAll();
+  alert("Task approved and published");
+  render();
+}
+
+/* ================= REJECT ================= */
+function rejectTask(id){
+  const reason = prompt("Why are you rejecting this task?");
+  if(!reason) return;
+
+  const task = postedTasks.find(t=>t.id===id);
+  if(!task) return;
+
+  const advertiser = users.find(u=>u.email===task.advertiserEmail);
+  if(advertiser){
+    advertiser.balance = (advertiser.balance || 0) + task.total;
+  }
+
+  task.status="rejected";
+  task.rejectionReason=reason;
+  task.reviewedAt=new Date().toISOString();
+
+  notifications.push({
+    email: task.advertiserEmail,
+    message: `❌ Your task was rejected. Reason: ${reason}. ₦${task.total} has been refunded.`,
+    date:new Date().toISOString()
+  });
+
+  saveAll();
+  alert("Task rejected and refunded");
+  render();
+}
+
+/* ================= SAVE ================= */
+function saveAll(){
+  localStorage.setItem("postedTasks",JSON.stringify(postedTasks));
+  localStorage.setItem("tasks",JSON.stringify(liveTasks));
+  localStorage.setItem("users",JSON.stringify(users));
+  localStorage.setItem("notifications",JSON.stringify(notifications));
+}
+</script>
+
+</body>
+</html>

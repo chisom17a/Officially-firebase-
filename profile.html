@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile - Chiearn Hub</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --primary: #0d6efd;
+  --bg: #f4f7fa;
+  --white: #fff;
+  --shadow: rgba(0,0,0,.1);
+}
+
+* { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+body { margin: 0; background: var(--bg); }
+
+header {
+  background: var(--white);
+  padding: 15px 25px;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--primary);
+  box-shadow: 0 2px 8px var(--shadow);
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
+  padding: 25px;
+}
+
+.profile-section {
+  background: var(--white);
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px var(--shadow);
+  margin-bottom: 20px;
+}
+
+input, textarea {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+button {
+  padding: 10px 15px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  background: var(--primary);
+  color: #fff;
+}
+
+button:hover {
+  background: #084dbf;
+}
+
+.profile-pic {
+  max-width: 120px;
+  border-radius: 50%;
+  margin-bottom: 12px;
+}
+</style>
+</head>
+
+<body>
+
+<header>Chiearn Hub - Profile</header>
+
+<div class="container">
+  <button onclick="location.href='earner.html'">⬅ Back To Dashboard</button>
+
+  <!-- USER INFO -->
+  <div class="profile-section">
+    <h3>User Info</h3>
+    <img id="profilePic" class="profile-pic">
+    <p><b>Username:</b> <span id="username"></span></p>
+    <p><b>Email:</b> <span id="email"></span></p>
+    <p><b>Phone:</b> <span id="phone"></span></p>
+    <p><b>Account Type:</b> <span id="model"></span></p>
+    <p><b>Balance:</b> ₦<span id="balance"></span></p>
+  </div>
+
+  <!-- BANK DETAILS -->
+  <div class="profile-section">
+    <h3>Bank Details</h3>
+    <input id="bankName" placeholder="Bank Name">
+    <input id="accountNumber" placeholder="Account Number">
+    <input id="accountName" placeholder="Account Name">
+    <button onclick="saveBank()">Save Bank Details</button>
+  </div>
+
+  <!-- PROFESSIONAL DETAILS -->
+  <div class="profile-section">
+    <h3>Professional Details</h3>
+    <textarea id="bio" placeholder="Your bio"></textarea>
+    <input id="skills" placeholder="Skills (comma separated)">
+    <button onclick="saveProfessional()">Save Professional Details</button>
+  </div>
+
+  <!-- REDIRECT BUTTON -->
+  <div class="profile-section">
+    <h3>Activities</h3>
+    <button onclick="location.href='history.html'">View Activity History</button>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import { getFirestore, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
+  authDomain: "chiearnhub-5ba9e.firebaseapp.com",
+  projectId: "chiearnhub-5ba9e",
+  storageBucket: "chiearnhub-5ba9e.firebasestorage.app",
+  messagingSenderId: "332513744974",
+  appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let userRef;
+
+/* ================= AUTH & ROLE CHECK ================= */
+onAuthStateChanged(auth, user => {
+  if (!user) {
+    alert("Please login to continue");
+    location.href = "login.html";
+    return;
+  }
+
+  userRef = doc(db, "users", user.uid);
+
+  onSnapshot(userRef, snap => {
+    if (!snap.exists()) return;
+
+    const u = snap.data();
+
+    if (u.model !== "Earner") {
+      alert("Unauthorized access");
+      location.href = "login.html";
+      return;
+    }
+
+    // REAL-TIME UI UPDATE
+    username.textContent = u.username || "";
+    email.textContent = u.email || "";
+    phone.textContent = u.phone || "";
+    model.textContent = u.model || "";
+    balance.textContent = (u.balance || 0).toLocaleString();
+    profilePic.src = u.profilePic || "https://via.placeholder.com/120";
+
+    bankName.value = u.bankDetails?.bankName || "";
+    accountNumber.value = u.bankDetails?.accountNumber || "";
+    accountName.value = u.bankDetails?.accountName || "";
+
+    bio.value = u.bio || "";
+    skills.value = u.skills || "";
+  });
+});
+
+/* ================= UPDATE FUNCTIONS ================= */
+window.saveBank = async () => {
+  await updateDoc(userRef, {
+    bankDetails: {
+      bankName: bankName.value,
+      accountNumber: accountNumber.value,
+      accountName: accountName.value
+    }
+  });
+  alert("Bank details updated");
+};
+
+window.saveProfessional = async () => {
+  await updateDoc(userRef, {
+    bio: bio.value,
+    skills: skills.value
+  });
+  alert("Professional details updated");
+};
+</script>
+
+</body>
+</html>

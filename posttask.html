@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Post Task - Chiearn Hub</title>
+
+<style>
+:root{
+  --primary:#0d6efd;
+  --bg:#f4f7fa;
+  --white:#fff;
+}
+*{box-sizing:border-box;font-family:Poppins,Inter,sans-serif}
+body{margin:0;background:var(--bg)}
+
+header{
+  background:#fff;
+  padding:15px 25px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-weight:600;
+}
+
+.balance{
+  background:#eef2ff;
+  padding:8px 15px;
+  border-radius:20px;
+  color:#1d4ed8;
+}
+
+.container{
+  max-width:600px;
+  margin:30px auto;
+  background:#fff;
+  padding:25px;
+  border-radius:12px;
+}
+
+input,select,button{
+  width:100%;
+  padding:12px;
+  margin:10px 0;
+  border-radius:8px;
+  border:1px solid #ccc;
+}
+
+button{
+  background:var(--primary);
+  color:#fff;
+  border:none;
+  font-weight:600;
+  cursor:pointer;
+}
+
+button.secondary{background:#64748b}
+button.danger{background:#dc2626}
+
+.actions{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+  margin-top:15px;
+}
+
+.price-box{
+  background:#f1f5f9;
+  padding:12px;
+  border-radius:8px;
+  font-weight:600;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <span>Post a Task</span>
+  <div class="balance" id="balance">₦0</div>
+</header>
+
+<div class="container">
+  <h3>Create Task</h3>
+
+  <label>Title / Platform</label>
+  <select id="platform">
+    <option value="">Select Platform</option>
+    <option>WhatsApp</option>
+    <option>Telegram</option>
+    <option>Instagram</option>
+    <option>Facebook</option>
+    <option>Twitter</option>
+    <option>TikTok</option>
+    <option>YouTube</option>
+    <option>Website</option>
+    <option>Gmail</option>
+  </select>
+
+  <label>Task Type</label>
+  <select id="type">
+    <option value="">Select Platform First</option>
+  </select>
+
+  <div class="price-box" id="priceBox">Price per person: ₦0</div>
+
+  <label>Task Link</label>
+  <input type="url" id="link">
+
+  <label>Proof Title</label>
+  <input type="text" id="proofTitle">
+
+  <label>Amount (People)</label>
+  <input type="number" id="amount" min="10">
+
+  <button onclick="calculateTotal()">Calculate Total</button>
+
+  <div class="price-box" id="totalBox">Total: ₦0</div>
+
+  <div class="actions">
+    <button class="secondary" onclick="location.href='advertiser.html'">Home</button>
+    <button class="secondary" onclick="location.href='deposit.html'">Deposit</button>
+    <button class="danger" onclick="location.href='posttask.html'">Cancel</button>
+    <button onclick="submitTask()">Proceed</button>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, updateDoc, addDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
+  authDomain: "chiearnhub-5ba9e.firebaseapp.com",
+  projectId: "chiearnhub-5ba9e",
+  storageBucket: "chiearnhub-5ba9e.firebasestorage.app",
+  messagingSenderId: "332513744974",
+  appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser;
+let userData;
+
+/* ===== AUTH CHECK ON PAGE LOAD ===== */
+(async () => {
+  const stored = localStorage.getItem("currentUser");
+  if (!stored) {
+    alert("Please login");
+    location.href = "login.html";
+    return;
+  }
+
+  currentUser = JSON.parse(stored);
+
+  const snap = await getDoc(doc(db, "users", currentUser.uid));
+  if (!snap.exists()) {
+    alert("User record not found");
+    location.href = "login.html";
+    return;
+  }
+
+  userData = snap.data();
+
+  if (userData.model !== "Advertiser") {
+    alert("Unauthorized access");
+    location.href = "login.html";
+    return;
+  }
+
+  onSnapshot(doc(db, "users", currentUser.uid), s => {
+    document.getElementById("balance").textContent =
+      "₦" + (s.data().balance || 0).toLocaleString();
+    userData.balance = s.data().balance || 0;
+  });
+})();
+
+/* ===== TASK TYPES ===== */
+const taskTypes = {
+  WhatsApp:[
+    {n:"Group Join",p:30},{n:"Channel Follow",p:25},
+    {n:"Contact Save",p:20},{n:"Channel React",p:15},
+    {n:"Status Posting",p:40}
+  ],
+  Telegram:[{n:"Group Join",p:25},{n:"Channel Follow",p:20}],
+  Instagram:[{n:"Follow",p:30},{n:"Like",p:15},{n:"Comment",p:25}],
+  Facebook:[{n:"Like Page",p:25},{n:"Follow",p:20}],
+  Twitter:[{n:"Follow",p:20},{n:"Retweet",p:15}],
+  TikTok:[{n:"Follow",p:25},{n:"Like",p:15}],
+  YouTube:[{n:"Subscribe",p:30},{n:"Like Video",p:15}],
+  Website:[{n:"Visit Website",p:20},{n:"Sign Up",p:40}],
+  Gmail:[{n:"Email Send",p:20},{n:"Email Review",p:30}]
+};
+
+let selectedPrice = 0;
+
+platform.onchange = () => {
+  type.innerHTML = "<option value=''>Select Task Type</option>";
+  selectedPrice = 0;
+  priceBox.textContent = "Price per person: ₦0";
+  totalBox.textContent = "Total: ₦0";
+
+  taskTypes[platform.value]?.forEach(t=>{
+    const o = document.createElement("option");
+    o.textContent = t.n;
+    o.dataset.price = t.p;
+    type.appendChild(o);
+  });
+};
+
+type.onchange = () => {
+  selectedPrice = +type.selectedOptions[0].dataset.price;
+  priceBox.textContent = `Price per person: ₦${selectedPrice}`;
+  calculateTotal();
+};
+
+window.calculateTotal = () => {
+  const a = +amount.value;
+  totalBox.textContent =
+    a >= 10 ? `Total: ₦${a * selectedPrice}` : "Total: ₦0";
+};
+
+/* ===== SUBMIT TASK ===== */
+window.submitTask = async () => {
+  const qty = +amount.value;
+  const total = qty * selectedPrice;
+
+  if (qty < 10 || !platform.value || !type.value || !link.value || !proofTitle.value) {
+    alert("Complete all fields correctly");
+    return;
+  }
+
+  if (userData.balance < total) {
+    alert("Insufficient balance");
+    location.href = "deposit.html";
+    return;
+  }
+
+  await updateDoc(doc(db,"users",currentUser.uid),{
+    balance: userData.balance - total
+  });
+
+  // This is the part that creates the 'tasks' collection if it doesn't exist
+  // and adds a new document with the task details, including the userId.
+  await addDoc(collection(db,"tasks"),{
+    userId: currentUser.uid, // User ID is included here
+    platform: platform.value,
+    type: type.value,
+    link: link.value,
+    proofTitle: proofTitle.value,
+    quantity: qty,
+    price: selectedPrice,
+    total,
+    status:"pending",
+    createdAt:new Date()
+  });
+
+  alert("Task submitted for approval");
+  location.href="advertiser.html";
+};
+</script>
+
+</body>
+</html>

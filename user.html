@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin - Users</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box;font-family:Poppins,sans-serif}
+body{margin:0;background:#f2f5fb}
+header{
+  background:#1e293b;color:#fff;
+  padding:15px 25px;font-size:20px;font-weight:600
+}
+.container{max-width:1100px;margin:30px auto}
+input{
+  width:100%;padding:12px;margin-bottom:15px;
+  border-radius:8px;border:1px solid #ccc
+}
+table{
+  width:100%;border-collapse:collapse;background:#fff;
+  border-radius:10px;overflow:hidden
+}
+th,td{padding:14px;font-size:14px}
+th{background:#1e293b;color:#fff}
+tr:nth-child(even){background:#f1f5f9}
+.nav{
+  display:flex;gap:10px;margin-bottom:15px
+}
+.nav button{
+  padding:10px 15px;border:none;border-radius:6px;
+  background:#0d6efd;color:#fff;cursor:pointer
+}
+</style>
+</head>
+
+<body>
+
+<header>Admin - Users Management</header>
+
+<div class="container">
+
+  <div class="nav">
+    <button onclick="location.href='adminpanel.html'">Dashboard</button>
+    <button onclick="location.href='balcony.html'">Balance Control</button>
+  </div>
+
+  <input type="text" id="search" placeholder="Search by email or phone">
+
+  <table>
+    <thead>
+      <tr>
+        <th>Email</th>
+        <th>Username</th>
+        <th>Phone</th>
+        <th>Role</th>
+        <th>Balance</th>
+        <th>Activated</th>
+      </tr>
+    </thead>
+    <tbody id="userTable"></tbody>
+  </table>
+
+</div>
+
+<script>
+/* AUTH */
+const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+const users = JSON.parse(localStorage.getItem("users")) || [];
+
+if(!currentUser || currentUser.model !== "Admin"){
+  location.href="login.html";
+}
+
+const table = document.getElementById("userTable");
+
+function loadUsers(filter=""){
+  table.innerHTML="";
+  users
+    .filter(u =>
+      u.email.toLowerCase().includes(filter.toLowerCase()) ||
+      (u.phone||"").includes(filter)
+    )
+    .forEach(u=>{
+      table.innerHTML += `
+        <tr>
+          <td>${u.email}</td>
+          <td>${u.username || "-"}</td>
+          <td>${u.phone || "-"}</td>
+          <td>${u.model}</td>
+          <td>₦${u.balance || 0}</td>
+          <td>${u.activated ? "Yes" : "No"}</td>
+        </tr>
+      `;
+    });
+}
+
+loadUsers();
+
+document.getElementById("search").addEventListener("input",e=>{
+  loadUsers(e.target.value);
+});
+</script>
+
+</body>
+</html>

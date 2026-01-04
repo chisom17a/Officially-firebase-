@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chiearn Hub - Earner Dashboard</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #0d6efd;
+      --primary-dark: #084dbf;
+      --background: #f4f7fa;
+      --text: #1d1d1d;
+      --white: #ffffff;
+      --shadow: rgba(0,0,0,0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      background: var(--background);
+      color: var(--text);
+    }
+
+    header {
+      background: var(--white);
+      padding: 14px 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .welcome {
+      font-size: 15px;
+      font-weight: 500;
+      color: #444;
+    }
+
+    .menu-icon {
+      font-size: 26px;
+      cursor: pointer;
+    }
+
+    .side-menu {
+      width: 0;
+      height: 100%;
+      background: var(--white);
+      position: fixed;
+      left: 0;
+      top: 0;
+      overflow-x: hidden;
+      box-shadow: 2px 0 8px var(--shadow);
+      z-index: 200;
+      transition: 0.3s;
+      padding-top: 60px;
+    }
+
+    .side-menu a {
+      display: block;
+      padding: 14px 25px;
+      font-size: 17px;
+      color: var(--text);
+      text-decoration: none;
+      border-bottom: 1px solid #eee;
+    }
+
+    .side-menu a:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    .side-menu .close-btn {
+      position: absolute;
+      top: 20px;
+      right: 22px;
+      font-size: 32px;
+      cursor: pointer;
+      color: var(--primary-dark);
+    }
+
+    .container {
+      padding: 20px;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      gap: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+
+    .card {
+      background: var(--white);
+      padding: 20px;
+      border-radius: 14px;
+      box-shadow: 0 3px 10px var(--shadow);
+    }
+
+    .balance-amount {
+      font-size: 34px;
+      font-weight: 700;
+      color: var(--primary-dark);
+      margin-bottom: 10px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      color: white;
+      background: var(--primary);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+
+    .btn:hover {
+      background: var(--primary-dark);
+    }
+
+    .referral {
+      background: var(--primary);
+      color: white;
+    }
+
+    .referral input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div>
+    <div class="logo">Chiearn Hub</div>
+    <div class="welcome" id="welcomeText">Welcome</div>
+  </div>
+  <div class="menu-icon" onclick="openMenu()">☰</div>
+</header>
+
+<div id="sideMenu" class="side-menu">
+  <span class="close-btn" onclick="closeMenu()">&times;</span>
+  <a href="earner.html">Dashboard</a>
+  <a href="tasks.html">Tasks</a>
+  <a href="withdraw.html">Withdraw</a>
+  <a href="profile.html">Profile</a>
+  <a href="history.html">History</a>
+  <a href="wallet.html">Bank Details</a>
+  <a href="#" onclick="logout()" style="color:red;">Logout</a>
+</div>
+
+<div class="container">
+  <div class="dashboard-grid">
+
+    <div class="card">
+      <div class="balance-amount" id="balance">₦0</div>
+      <button class="btn" onclick="location.href='withdraw.html'">Withdraw</button>
+      <button class="btn" onclick="location.href='tasks.html'">Perform Tasks</button>
+    </div>
+
+    <div class="card referral">
+      <h3>Referral Program</h3>
+      <label>Your Referral Link</label>
+      <input type="text" id="refLink" readonly>
+      <button class="btn" onclick="copyReferral()">Copy Link</button>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+  import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+  import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
+    authDomain: "chiearnhub-5ba9e.firebaseapp.com",
+    projectId: "chiearnhub-5ba9e",
+    storageBucket: "chiearnhub-5ba9e.firebasestorage.app",
+    messagingSenderId: "332513744974",
+    appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // ===== AUTH CHECK =====
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+
+  if (!currentUser) {
+    alert("Please login to continue");
+    window.location.href = "login.html";
+  }
+
+  if (currentUser.model !== "Earner") {
+    alert("Unauthorized access");
+    window.location.href = "login.html";
+  }
+
+  // ===== REAL-TIME USER DATA =====
+  const userRef = doc(db, "users", currentUser.uid);
+
+  onSnapshot(userRef, (snap) => {
+    if (!snap.exists()) return;
+
+    const data = snap.data();
+    const username = data.username || currentUser.username;
+    const balance = data.balance || 0;
+
+    document.getElementById("welcomeText").textContent = `Welcome, ${username}`;
+    document.getElementById("balance").textContent = "₦" + balance.toLocaleString();
+    document.getElementById("refLink").value =
+      `https://chiearnhuborg.netlify.app/signup?referral=${encodeURIComponent(username)}`;
+  });
+
+  // ===== UI FUNCTIONS (EXPOSED) =====
+  window.openMenu = () => {
+    document.getElementById("sideMenu").style.width = "250px";
+  };
+
+  window.closeMenu = () => {
+    document.getElementById("sideMenu").style.width = "0";
+  };
+
+  window.copyReferral = () => {
+    navigator.clipboard.writeText(document.getElementById("refLink").value);
+    alert("Referral link copied!");
+  };
+
+  window.logout = () => {
+    signOut(auth).then(() => {
+      localStorage.removeItem("currentUser");
+      window.location.href = "login.html";
+    });
+  };
+</script>
+
+</body>
+</html>

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Task Review - Chiearn Hub</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --primary: #2563eb;
+  --success: #16a34a;
+  --danger: #dc2626;
+  --bg: #f4f7fa;
+  --white: #fff;
+  --shadow: rgba(0,0,0,.1);
+}
+
+* {
+  box-sizing: border-box;
+  font-family: Inter, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+}
+
+header {
+  background: var(--white);
+  padding: 15px 25px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--primary);
+  box-shadow: 0 2px 8px var(--shadow);
+}
+
+.container {
+  max-width: 1000px;
+  margin: auto;
+  padding: 25px;
+}
+
+.card {
+  background: var(--white);
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px var(--shadow);
+  margin-bottom: 20px;
+}
+
+.card h3 {
+  margin: 0 0 10px;
+}
+
+.meta {
+  font-size: 14px;
+  margin-bottom: 10px;
+  color: #555;
+}
+
+.proof-box {
+  background: #f1f5f9;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 10px 0;
+  font-size: 14px;
+}
+
+img {
+  max-width: 100%;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 15px;
+}
+
+button {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.approve {
+  background: var(--success);
+  color: white;
+}
+
+.reject {
+  background: var(--danger);
+  color: white;
+}
+</style>
+</head>
+
+<body>
+
+<header>Admin – Task Submissions</header>
+
+<div class="container" id="taskContainer"></div>
+  <button type="button" class="btn secondary" onclick="location.href='adminpanel.html'">Home</button>
+
+<script>
+/* =====================================================
+   AUTH CHECK (ADMIN ONLY)
+===================================================== */
+const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+const users = JSON.parse(localStorage.getItem("users")) || [];
+
+if (!currentUser) {
+  window.location.href = "login.html";
+}
+
+const admin = users.find(
+  u => u.email === currentUser.email && u.model === "Admin"
+);
+
+if (!admin) {
+  alert("Unauthorized access");
+  window.location.href = "login.html";
+}
+
+/* =====================================================
+   LOAD TASK SUBMISSIONS
+===================================================== */
+let taskActivities = JSON.parse(localStorage.getItem("taskActivities")) || [];
+const container = document.getElementById("taskContainer");
+
+function renderTasks() {
+  container.innerHTML = "";
+
+  const pendingTasks = taskActivities.filter(t => t.status === "pending");
+
+  if (pendingTasks.length === 0) {
+    container.innerHTML = "<p>No pending task submissions.</p>";
+    return;
+  }
+
+  pendingTasks.forEach((task, index) => {
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `
+      <h3>${task.title}</h3>
+      <div class="meta">
+        <b>User Email:</b> ${task.userEmail}<br>
+        <b>Reward:</b> ₦${task.reward}<br>
+        <b>Submitted:</b> ${new Date(task.createdAt).toLocaleString()}
+      </div>
+
+      <div class="proof-box">
+        <b>Text Proof:</b><br>
+        ${task.textProof}
+        ${task.imageProof ? `<img src="${task.imageProof}">` : ""}
+      </div>
+
+      <div class="actions">
+        <button class="approve" onclick="approveTask(${index})">Approve</button>
+        <button class="reject" onclick="rejectTask(${index})">Reject</button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+renderTasks();
+
+/* =====================================================
+   APPROVE TASK
+===================================================== */
+function approveTask(index) {
+  const task = taskActivities.filter(t => t.status === "pending")[index];
+
+  const user = users.find(u => u.email === task.userEmail);
+  if (!user) return alert("User not found");
+
+  // credit balance
+  user.balance = (user.balance || 0) + task.reward;
+
+  // update task status
+  task.status = "approved";
+  task.reviewedAt = new Date().toISOString();
+
+  localStorage.setItem("users", JSON.stringify(users));
+  localStorage.setItem("taskActivities", JSON.stringify(taskActivities));
+
+  alert("Task approved & user credited!");
+  renderTasks();
+}
+
+/* =====================================================
+   REJECT TASK
+===================================================== */
+function rejectTask(index) {
+  const task = taskActivities.filter(t => t.status === "pending")[index];
+  task.status = "rejected";
+  task.reviewedAt = new Date().toISOString();
+
+  localStorage.setItem("taskActivities", JSON.stringify(taskActivities));
+
+  alert("Task rejected");
+  renderTasks();
+}
+</script>
+
+</body>
+</html>

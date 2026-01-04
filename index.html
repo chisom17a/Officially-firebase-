@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Chiearn Hub — Earn from social tasks</title>
+
+  <!-- Google font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ============================
+       THEME / ROOT VARIABLES
+    ============================ */
+    :root{
+      --bg-1: #e8f6ff;          /* light background gradient start */
+      --bg-2: #ffffff;          /* background gradient end */
+      --accent: #2aa0ff;        /* primary sky blue */
+      --accent-600: #1b9cf3;
+      --muted: #6b7280;
+      --card: rgba(255,255,255,0.85);
+      --glass: rgba(255,255,255,0.7);
+      --shadow: 0 10px 30px rgba(12, 30, 60, 0.08);
+      --radius: 14px;
+    }
+
+    /* ============================
+       BASIC RESET
+    ============================ */
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: 'Poppins', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(135deg,var(--bg-1), var(--bg-2));
+      color: #071232;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      line-height:1.5;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    a{color:inherit; text-decoration:none}
+    img{max-width:100%; display:block}
+
+    /* ============================
+       HEADER
+    ============================ */
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:18px 28px;
+      position:sticky;
+      top:0;
+      backdrop-filter: blur(6px);
+      background: linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0.35));
+      z-index:50;
+      box-shadow: 0 2px 10px rgba(12,30,60,0.04);
+    }
+    .brand{
+      display:flex;align-items:center;gap:12px;
+    }
+    .brand img{height:40px; width:40px; object-fit:contain; border-radius:8px}
+    .brand .name{font-weight:700; font-size:18px; letter-spacing:0.2px}
+
+    nav{display:flex; gap:14px; align-items:center}
+    .nav-links{display:flex; gap:10px; align-items:center}
+    .nav-links a{padding:10px 12px; border-radius:10px; color:inherit; font-weight:500}
+    .nav-links a:hover{background:rgba(11,100,190,0.06)}
+
+    .cta-primary{
+      background:linear-gradient(90deg,var(--accent),var(--accent-600));
+      color:white; padding:10px 16px; border-radius:10px; border:none; cursor:pointer; font-weight:600;
+      box-shadow: 0 8px 24px rgba(42,160,255,0.16);
+    }
+    .cta-secondary{
+      background:transparent; border:1px solid rgba(11,100,190,0.08);
+      color:var(--accent-600); padding:9px 14px; border-radius:10px; font-weight:600; cursor:pointer;
+    }
+
+    /* Mobile nav toggle */
+    .menu-toggle{display:none; background:transparent; border:none; font-size:20px; cursor:pointer}
+
+    /* ============================
+       HERO
+    ============================ */
+    .hero{
+      max-width:1200px;
+      margin:36px auto;
+      padding:40px 28px;
+      display:grid;
+      grid-template-columns: 1fr 460px;
+      gap:28px;
+      align-items:center;
+      position:relative;
+    }
+
+    .hero-left{
+      padding:24px;
+    }
+    .eyebrow{display:inline-block; padding:6px 10px; border-radius:999px; background:rgba(42,160,255,0.12); color:var(--accent-600); font-weight:600; font-size:13px}
+    .hero-title{
+      font-size:36px; margin:18px 0 14px; line-height:1.05; font-weight:700;
+    }
+    .hero-sub{
+      color:var(--muted); max-width:680px; margin-bottom:20px; font-size:16px;
+    }
+    .hero-cta{display:flex; gap:12px; flex-wrap:wrap}
+
+    /* right card */
+    .hero-card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(250,250,255,0.9));
+      border-radius:18px; padding:22px; box-shadow: var(--shadow); min-height:260px;
+    }
+    .hero-stats{display:flex; gap:18px; align-items:center; justify-content:space-between}
+    .stat{flex:1; text-align:center; padding:10px}
+    .stat .n{font-size:24px; font-weight:700; color:var(--accent-600)}
+    .stat .s{color:var(--muted); font-size:13px}
+
+    /* decorative floating shapes */
+    .float-shape{
+      position:absolute; border-radius:16px; filter:blur(28px); opacity:0.25; transform:translateZ(0);
+    }
+    .shape-1{width:220px;height:220px; right:-40px; top:-40px; background:linear-gradient(45deg,#cfeeff,#b0e0ff)}
+    .shape-2{width:120px;height:120px; left:-20px; bottom:-20px; background:linear-gradient(45deg,#ffffff,#cfeeff); opacity:0.35}
+
+    /* ============================
+       SECTIONS: How it works, Categories
+    ============================ */
+    .section{
+      max-width:1200px; margin:40px auto; padding:36px 24px;
+    }
+    .section h3{font-size:22px; margin:0 0 12px}
+    .cards{
+      display:grid; grid-template-columns: repeat(4,1fr); gap:18px; margin-top:18px;
+    }
+    .card{
+      background:var(--card); padding:18px; border-radius:14px; box-shadow: 0 8px 26px rgba(8,18,40,0.04);
+      transition:transform .22s ease;
+    }
+    .card:hover{transform:translateY(-6px)}
+    .card .icon{height:48px; width:48px; display:flex; align-items:center; justify-content:center; border-radius:10px; background:rgba(42,160,255,0.12); color:var(--accent-600); font-weight:700; margin-bottom:12px}
+
+    /* Category icons bigger grid */
+    .categories{display:grid; grid-template-columns: repeat(4,1fr); gap:18px; margin-top:18px}
+    .category{
+      background:linear-gradient(180deg, rgba(255,255,255,0.95), rgba(248,252,255,0.95));
+      padding:18px; border-radius:14px; text-align:center; box-shadow: var(--shadow);
+    }
+    .category .cat-icon{font-size:28px; height:64px; width:64px; margin:0 auto 10px; display:flex; align-items:center; justify-content:center; border-radius:12px; background:rgba(42,160,255,0.08); color:var(--accent-600)}
+    .category h4{margin:6px 0 4px}
+
+    /* ============================
+       COUNTERS & TESTIMONIALS
+    ============================ */
+    .counters{display:flex; gap:18px; margin-top:18px; justify-content:space-between}
+    .counter{flex:1; background:var(--card); padding:18px; border-radius:14px; text-align:center; box-shadow:var(--shadow)}
+    .counter .num{font-size:28px; font-weight:800; color:var(--accent-600)}
+    .testimonials{display:grid; grid-template-columns:1fr 360px; gap:18px; margin-top:22px; align-items:start}
+
+    .test-carousel{background:var(--card); border-radius:14px; padding:18px; box-shadow:var(--shadow)}
+    .testimonial{display:none}
+    .testimonial.active{display:block}
+    .testimonial p{color:var(--muted)}
+
+    /* ============================
+       FOUNDER
+    ============================ */
+    .founder{
+      display:flex; gap:18px; align-items:center; padding:18px; background:linear-gradient(180deg, rgba(255,255,255,0.95), rgba(250,250,255,0.9));
+      border-radius:14px; box-shadow:var(--shadow);
+    }
+    .founder img{width:120px; height:120px; object-fit:cover; border-radius:12px; box-shadow:0 8px 22px rgba(8,18,40,0.08)}
+    .founder .bio{flex:1}
+
+    /* ============================
+       FOOTER
+    ============================ */
+    footer{background:linear-gradient(180deg,#f7fbff, #ffffff); padding:36px 20px; margin-top:40px; border-top:1px solid rgba(10,20,40,0.03)}
+    .footer-grid{max-width:1200px; margin:0 auto; display:grid; grid-template-columns:repeat(4,1fr); gap:18px}
+    .footer-col h5{margin:0 0 10px; font-size:14px}
+    .foot-links a{display:block; margin:8px 0; color:var(--muted); font-size:14px}
+
+    /* ============================
+       RESPONSIVE
+    ============================ */
+    @media (max-width:1000px){
+      .hero{grid-template-columns: 1fr; padding:28px 18px}
+      .cards, .categories{grid-template-columns: repeat(2,1fr)}
+      .testimonials{grid-template-columns:1fr}
+      .footer-grid{grid-template-columns:repeat(2,1fr)}
+    }
+    @media (max-width:600px){
+      .nav-links{display:none}
+      .menu-toggle{display:block}
+      .cards, .categories{grid-template-columns:1fr}
+      .counters{flex-direction:column}
+      .hero-title{font-size:28px}
+      .brand .name{font-size:16px}
+      header{padding:12px 18px}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="brand">
+      <img src="chiboydatabase.png" alt="Chiearn Hub logo" />
+      <div>
+        <div class="name">Chiearn Hub</div>
+        <div style="font-size:12px;color:var(--muted)">Social task earnings</div>
+      </div>
+    </div>
+
+    <nav>
+      <div class="nav-links" aria-hidden>
+        <a href="#how">How it works</a>
+        <a href="#categories">Categories</a>
+        <a href="prices.html">Pricing</a>
+        <a href="#founder">About</a>
+      </div>
+
+      <button class="menu-toggle" aria-label="Open menu" onclick="toggleMobileNav()">☰</button>
+
+      <div style="display:flex; gap:8px; margin-left:12px;">
+        <button class="cta-secondary" onclick="location.href='login.html'">Login</button>
+        <button class="cta-primary" onclick="location.href='signup.html'">Get started</button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- HERO -->
+  <main>
+    <section class="hero" aria-label="Hero">
+      <div class="hero-left">
+        <span class="eyebrow">Trusted • Fair • Fast</span>
+        <h1 class="hero-title">Earn from simple social media tasks — get paid fairly, withdraw anytime.</h1>
+        <p class="hero-sub">Complete short tasks (like, follow, watch, comment) from real advertisers and earn. Chiearn Hub connects advertisers with real human engagement while rewarding users transparently.</p>
+
+        <div class="hero-cta" style="margin-top:18px;">
+          <button class="cta-primary" onclick="location.href='signup.html'">Create account — it's free</button>
+          <button class="cta-secondary" onclick="location.href='chiboydatabase.html'">DEVELOPER</button>
+        </div>
+
+        <!-- animated counters preview -->
+        <div style="margin-top:22px" class="hero-card">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-size:13px;color:var(--muted)">Active community</div>
+              <div style="font-weight:800; font-size:20px; color:var(--accent-600)">Join 20,000+ users</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:13px;color:var(--muted)">Minumum payout</div>
+              <div style="font-weight:700; font-size:20px">₦500</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="hero-card" role="region" aria-label="Dashboard preview">
+          <div style="display:flex; gap:16px; align-items:center;">
+            <div style="flex:1">
+              <h4 style="margin:0 0 6px">STATISTICS</h4>
+              <div style="color:var(--muted); font-size:14px">Perform tasks, earn , withdraw , post task and get real audience in seconds.</div>
+
+              <div style="margin-top:14px; display:flex; gap:10px;">
+                <div style="flex:1; padding:10px; background:#fff; border-radius:12px;">
+                  <div style="font-size:12px;color:var(--muted)">withdrawals</div>
+                  <div style="font-weight:800; font-size:18px; color:var(--accent-600)">₦180,540</div>
+                </div>
+                <div style="flex:1; padding:10px; background:#fff; border-radius:12px;">
+                  <div style="font-size:12px;color:var(--muted)">Pending tasks</div>
+                  <div style="font-weight:800; font-size:18px">5</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="width:120px; text-align:center;">
+              <img src="chiboydatabase.jpg" alt="preview avatar" style="width:80px; height:80px; border-radius:10px; object-fit:cover; margin-bottom:8px;">
+              <div style="font-size:13px; color:var(--muted)">Start now</div>
+            </div>
+          </div>
+
+          <div style="margin-top:14px; display:flex; gap:10px; justify-content:space-between;">
+            <div class="stat">
+              <div class="n"> <span data-target="24000" class="counter-number">0</span>+</div>
+              <div class="s">Users</div>
+            </div>
+            <div class="stat">
+              <div class="n"><span data-target="125000" class="counter-number">0</span>+</div>
+              <div class="s">Tasks completed</div>
+            </div>
+            <div class="stat">
+              <div class="n"><span data-target="3400" class="counter-number">0</span>+</div>
+              <div class="s">Advertisers</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- decorative shapes -->
+      <div class="float-shape shape-1" aria-hidden></div>
+      <div class="float-shape shape-2" aria-hidden></div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section id="how" class="section" aria-labelledby="how-title">
+      <h3 id="how-title">How it works</h3>
+      <p style="color:var(--muted); margin:8px 0 16px; max-width:900px;">Simple, transparent steps: sign up, pick tasks, complete and verify, then withdraw.</p>
+
+      <div class="cards" role="list">
+        <div class="card" role="listitem">
+          <div class="icon">1</div>
+          <h4 style="margin:6px 0 6px">Create account</h4>
+          <div style="color:var(--muted); font-size:14px">Sign up with email or social accounts. Quick verification.</div>
+        </div>
+
+        <div class="card" role="listitem">
+          <div class="icon">2</div>
+          <h4 style="margin:6px 0 6px">Choose tasks</h4>
+          <div style="color:var(--muted); font-size:14px">Pick tasks by platform and payout.</div>
+        </div>
+
+        <div class="card" role="listitem">
+          <div class="icon">3</div>
+          <h4 style="margin:6px 0 6px">Complete & submit</h4>
+          <div style="color:var(--muted); font-size:14px">Follow instructions, submit proof, and earn instantly when approved.</div>
+        </div>
+
+        <div class="card" role="listitem">
+          <div class="icon">4</div>
+          <h4 style="margin:6px 0 6px">Withdraw funds</h4>
+          <div style="color:var(--muted); font-size:14px">Withdraw to local bank or supported wallets.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CATEGORIES -->
+    <section id="categories" class="section" aria-labelledby="cat-title">
+      <h3 id="cat-title">Task Categories</h3>
+      <p style="color:var(--muted); margin:8px 0 12px; max-width:900px;">We support many platforms — choose tasks that match your skills and interests.</p>
+
+      <div class="categories" role="list">
+        <div class="category" role="listitem">
+          <div class="cat-icon">f</div>
+          <h4>Facebook</h4>
+          <div style="color:var(--muted); font-size:13px">Likes, comments, shares, page follows.</div>
+        </div>
+
+        <div class="category" role="listitem">
+          <div class="cat-icon">ig</div>
+          <h4>Instagram</h4>
+          <div style="color:var(--muted); font-size:13px">Post saves, story views, follows.</div>
+        </div>
+
+        <div class="category" role="listitem">
+          <div class="cat-icon">yt</div>
+          <h4>YouTube</h4>
+          <div style="color:var(--muted); font-size:13px">Watch time, likes, subscribe tasks.</div>
+        </div>
+
+        <div class="category" role="listitem">
+          <div class="cat-icon">tt</div>
+          <h4>TikTok</h4>
+          <div style="color:var(--muted); font-size:13px">Views, follows, engagement tasks.</div>
+        </div>
+      </div>
+      
+       <div class="category" role="listitem">
+          <div class="cat-icon">tt</div>
+          <h4>Others</h4>
+          <div style="color:var(--muted); font-size:13px">Views, follows, engagement tasks, sign up, share.</div>
+        </div>
+      </div>
+      
+    </section>
+
+    <!-- COUNTERS + TESTIMONIALS -->
+    <section class="section" aria-labelledby="stats-title">
+      <h3 id="stats-title">STATISTICS</h3>
+      <div class="counters" style="margin-top:12px;">
+        <div class="counter">
+          <div style="font-size:12px;color:var(--muted)">Total Users</div>
+          <div class="num"><span data-target="24000" class="counter-number">0</span>+</div>
+        </div>
+        <div class="counter">
+          <div style="font-size:12px;color:var(--muted)">Tasks Completed</div>
+          <div class="num"><span data-target="125000" class="counter-number">0</span>+</div>
+        </div>
+        <div class="counter">
+          <div style="font-size:12px;color:var(--muted)">Weekly Payouts</div>
+          <div class="num"><span data-target="35000" class="counter-number">0</span>+</div>
+        </div>
+      </div>
+
+      <div class="testimonials" style="margin-top:18px;">
+        <div class="test-carousel">
+          <div class="testimonial active" id="t1">
+            <strong>Excellent platform</strong>
+            <p>"I earn on daily and withdraw easily. Support is responsive."</p>
+            <div style="font-size:13px;color:var(--muted); margin-top:8px">— Amina, Lagos</div>
+          </div>
+
+          <div class="testimonial" id="t2">
+            <strong>Great payouts</strong>
+            <p>"Tasks are clear and payouts are fair and fast. Recommended."</p>
+            <div style="font-size:13px;color:var(--muted); margin-top:8px">— Emeka, Abuja</div>
+          </div>
+
+          <div style="display:flex; gap:8px; margin-top:12px;">
+            <button onclick="showTestimonial(1)" style="padding:8px 10px; border-radius:8px; border:none; background:rgba(11,100,100,0.08)">1</button>
+            <button onclick="showTestimonial(2)" style="padding:8px 10px; border-radius:8px; border:none; background:rgba(11,100,190,0.08)">2</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="founder" id="founder" style="flex-direction:column; align-items:flex-start;">
+            <img src="chiboydatabase.jpg" alt="Founder" />
+            <div class="bio" style="margin-top:8px;">
+              <strong>Our founder</strong>
+              <div style="color:var(--muted); font-size:14px; margin-top:6px">Chiearn Hub was built to create fair earning opportunities through everyday social engagement. We verify advertisers to keep tasks real and transparent.</div>
+              <div style="margin-top:10px">
+                <button class="cta-secondary" onclick="location.href='about.html'">Read more</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h5>Chiearn Hub</h5>
+        <div style="color:var(--muted); font-size:14px; max-width:260px;">Earn from short social tasks. Real advertisers. Fast payouts. Built with trust and transparency.</div>
+      </div>
+
+      <div class="footer-col">
+        <h5>Company</h5>
+        <div class="foot-links">
+          <a href="about.html">About</a>
+          <a href="terms.html">Terms</a>
+          <a href="policy.html">Privacy</a>
+        </div>
+      </div>
+
+      <div class="footer-col">
+        <h5>Resources</h5>
+        <div class="foot-links">
+          <a href="blog.html">Support</a>
+          <a href="faq.html">FAQ</a>
+          <a href="blog.html">OWNER</a>
+        </div>
+      </div>
+
+      <div class="footer-col">
+        <h5>Get in touch</h5>
+        <div class="foot-links">
+          <a href="mailto:chiboydatabase.suppor@gmail.com">support@chiearnhub.ng</a>
+          <a href="https://x.com/favour15563">Twitter</a>
+          <a href="https://chat.whatsapp.com/KG0U1mX9m8O9ZGSTbd8J3s">Whatsapp</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============================
+       JAVASCRIPT (simple & small)
+       - counters animation
+       - mobile nav toggle
+       - testimonial switcher
+    ============================ -->
+  <script>
+    // Simple mobile nav toggle (reveals nav links for very small screens)
+    function toggleMobileNav(){
+      const links = document.querySelector('.nav-links');
+      if(!links) return;
+      if(links.style.display === 'flex'){
+        links.style.display = '';
+      } else {
+        links.style.display = 'flex';
+        links.style.position = 'absolute';
+        links.style.right = '16px';
+        links.style.top = '66px';
+        links.style.background = 'var(--glass)';
+        links.style.padding = '10px';
+        links.style.borderRadius = '10px';
+        links.style.boxShadow = 'var(--shadow)';
+      }
+    }
+
+    // Animated counters using IntersectionObserver
+    const counters = document.querySelectorAll('.counter-number');
+    const counterOptions = { root: null, rootMargin: '0px', threshold: 0.4 };
+
+    const runCounter = (el, target) => {
+      let start = 0;
+      const duration = 1500; // ms
+      const stepTime = Math.max(Math.floor(duration / target), 10);
+      const increment = Math.ceil(target / (duration / stepTime));
+
+      const timer = setInterval(() => {
+        start += increment;
+        if (start >= target) {
+          el.textContent = target.toLocaleString();
+          clearInterval(timer);
+        } else {
+          el.textContent = start.toLocaleString();
+        }
+      }, stepTime);
+    };
+
+    const counterObserver = new IntersectionObserver((entries, obs) => {
+      entries.forEach(entry => {
+        if(entry.isIntersecting){
+          const el = entry.target;
+          const target = parseInt(el.getAttribute('data-target') || '0', 10);
+          if(!el._counted){
+            runCounter(el, target);
+            el._counted = true;
+          }
+        }
+      });
+    }, counterOptions);
+
+    counters.forEach(c => counterObserver.observe(c));
+
+    // Testimonial simple switcher
+    function showTestimonial(n){
+      const all = document.querySelectorAll('.testimonial');
+      all.forEach(t => t.classList.remove('active'));
+      const target = document.querySelector('#t' + n);
+      if(target) target.classList.add('active');
+    }
+
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(a=>{
+      a.addEventListener('click', function(e){
+        const href = this.getAttribute('href');
+        if(href.length > 1){
+          e.preventDefault();
+          const el = document.querySelector(href);
+          if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+        }
+      });
+    });
+  </script>
+</body>
+</html>

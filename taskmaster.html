@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin Task Review</title>
+<style>
+body{font-family:Inter;background:#f4f7fa;margin:0}
+header{background:#fff;padding:15px;font-size:22px;font-weight:700}
+.container{max-width:1000px;margin:auto;padding:20px}
+.card{background:#fff;padding:20px;margin-bottom:20px;border-radius:12px}
+img{max-width:100%;border-radius:8px;margin-top:10px}
+button{padding:10px 16px;border:none;border-radius:8px;font-weight:600;cursor:pointer}
+.approve{background:#16a34a;color:#fff}
+.reject{background:#dc2626;color:#fff}
+.actions{display:flex;gap:12px;margin-top:15px}
+</style>
+</head>
+
+<body>
+
+<header>Admin – Task Submissions</header>
+  <button type="button" class="btn secondary" onclick="location.href='adminpanel.html'">Back to panel</button>
+<div class="container" id="taskContainer"></div>
+  <button type="button" class="btn secondary" onclick="location.href='adminpanel.html'">Home</button>
+
+<script>
+const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+const users = JSON.parse(localStorage.getItem("users")) || [];
+
+if (!currentUser) location.href="login.html";
+const admin = users.find(u => u.email===currentUser.email && u.model==="Admin");
+if (!admin) location.href="login.html";
+
+let submissions = JSON.parse(localStorage.getItem("taskSubmissions")) || [];
+const container = document.getElementById("taskContainer");
+
+function render() {
+  container.innerHTML = "";
+  const pending = submissions.filter(s => s.status === "pending");
+
+  if (!pending.length) {
+    container.innerHTML = "<p>No pending submissions</p>";
+    return;
+  }
+
+  pending.forEach(sub => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <h3>${sub.taskTitle}</h3>
+      <p><b>User:</b> ${sub.userEmail}</p>
+      <p><b>Reward:</b> ₦${sub.reward}</p>
+      <p><b>Text Proof:</b><br>${sub.textProof}</p>
+      ${sub.imageProof ? `<img src="${sub.imageProof}">` : ""}
+      <div class="actions">
+        <button class="approve" onclick="approve('${sub.id}')">Approve</button>
+        <button class="reject" onclick="reject('${sub.id}')">Reject</button>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function approve(id) {
+  const sub = submissions.find(s => s.id === id);
+  const user = users.find(u => u.email === sub.userEmail);
+  if (!user) return alert("User not found");
+
+  user.balance = (user.balance || 0) + sub.reward;
+  sub.status = "approved";
+  sub.reviewedAt = new Date().toISOString();
+
+  localStorage.setItem("users", JSON.stringify(users));
+  localStorage.setItem("taskSubmissions", JSON.stringify(submissions));
+  alert("Approved & user credited");
+  render();
+}
+
+function reject(id) {
+  const sub = submissions.find(s => s.id === id);
+  sub.status = "rejected";
+  sub.reviewedAt = new Date().toISOString();
+
+  localStorage.setItem("taskSubmissions", JSON.stringify(submissions));
+  alert("Rejected");
+  render();
+}
+
+render();
+</script>
+
+</body>
+</html>

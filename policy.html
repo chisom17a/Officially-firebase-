@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chiearn Hub - Privacy Policy</title>
+
+    <!-- SEO + Social -->
+    <meta name="description" content="Chiearn Hub Privacy Policy - Learn how we protect your data, your rights, and how your information is handled securely." />
+    <meta property="og:title" content="Chiearn Hub - Privacy Policy" />
+    <meta property="og:description" content="Your privacy is our priority. Read how Chiearn Hub manages and protects user data." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="logo.png" />
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #e8f2ff, #ffffff);
+            color: #222;
+        }
+
+        /* HEADER */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 40px;
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+            background: rgba(255,255,255,0.75);
+            position: sticky;
+            top: 0;
+            z-index: 30;
+        }
+        .logo {
+            font-size: 30px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        /* NAVIGATION */
+        .nav a {
+            margin: 0 18px;
+            font-size: 15px;
+            color: #333;
+            text-decoration: none;
+            font-weight: 500;
+            position: relative;
+        }
+        .nav a::after {
+            content: "";
+            position: absolute;
+            width: 0%;
+            height: 2px;
+            background: #3aa7ff;
+            left: 50%;
+            bottom: -3px;
+            transition: all .3s ease;
+        }
+        .nav a:hover::after {
+            width: 100%;
+            left: 0;
+        }
+        .nav a:hover {
+            color: #3aa7ff;
+        }
+
+        /* MAIN SECTION */
+        .main-section {
+            max-width: 920px;
+            margin: 70px auto;
+            padding: 55px;
+            background: rgba(255,255,255,0.96);
+            border-radius: 22px;
+            box-shadow: 0 10px 35px rgba(0,0,0,0.12);
+            animation: fadeIn 0.9s ease;
+        }
+
+        .main-section h1 {
+            text-align: center;
+            font-size: 42px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+        }
+
+        .highlight-bar {
+            width: 120px;
+            height: 5px;
+            margin: 12px auto 25px;
+            background: #3aa7ff;
+            border-radius: 10px;
+            opacity: 0.8;
+        }
+
+        .updated-badge {
+            text-align: center;
+            font-size: 14px;
+            margin-bottom: 35px;
+            opacity: 0.75;
+        }
+
+        h3 {
+            font-size: 22px;
+            margin-top: 35px;
+            color: #0b75e0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        h3::before {
+            content: "•";
+            font-size: 28px;
+            color: #3aa7ff;
+            margin-right: 4px;
+        }
+
+        .main-section p {
+            line-height: 1.75;
+            margin-top: 8px;
+        }
+
+        /* DIVIDER */
+        .divider {
+            width: 100%;
+            height: 1px;
+            background: rgba(0,0,0,0.09);
+            margin: 28px 0;
+        }
+
+        /* BUTTONS */
+        .center-buttons {
+            text-align: center;
+            margin-top: 45px;
+        }
+
+        .btn {
+            padding: 13px 30px;
+            background-color: #3aa7ff;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 0 12px;
+            font-weight: 600;
+            transition: transform 0.25s ease, background 0.25s ease;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.14);
+        }
+        .btn:hover {
+            transform: translateY(-4px);
+            background-color: #148dff;
+        }
+
+        /* FOOTER */
+        footer {
+            text-align: center;
+            padding: 35px;
+            font-size: 15px;
+            opacity: 0.85;
+            margin-top: 90px;
+        }
+        footer a {
+            margin: 0 20px;
+            color: #333;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        footer a:hover {
+            color: #3aa7ff;
+        }
+
+        /* BACK TO TOP BUTTON */
+        #backToTop {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #3aa7ff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 20px;
+            cursor: pointer;
+            display: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+            transition: 0.3s;
+        }
+        #backToTop:hover {
+            transform: translateY(-5px);
+            background: #148dff;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- HEADER -->
+    <header>
+        <div style="display:flex; align-items:center; gap:12px;">
+            <img src="chiboydatabase.png" alt="Chiearn Hub Logo" style="height:45px;" />
+            <div class="logo">Chiearn Hub</div>
+        </div>
+
+        <div class="nav">
+            <a href="index.html">Home</a>
+            <a href="terms.html">Terms</a>
+            <a href="policy.html">Policy</a>
+            <a href="support.html">Support</a>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <section class="main-section">
+
+        <h1>Privacy Policy</h1>
+        <div class="highlight-bar"></div>
+        <div class="updated-badge">Last Updated: November 2025</div>
+
+        <p>At Chiearn Hub, your privacy and trust are extremely important to us. This Privacy Policy explains how we collect, process, use, and secure the information we receive from you.</p>
+
+        <div class="divider"></div>
+
+        <h3>1. Information We Collect</h3>
+        <p>We may collect information you provide, including your full name, email address, phone number, payment details, usage details, and activity logs. We may also collect device information, IP address, and browser metadata.</p>
+
+        <h3>2. How We Use Your Information</h3>
+        <p>Your data allows us to create and manage your account, process transactions, improve platform safety, deliver customer support, and personalize your user experience.</p>
+
+        <h3>3. Data Protection & Security</h3>
+        <p>We use encryption, secure storage systems, and continuous monitoring to protect your information. Your data is never stored in plain text and is handled under strict confidentiality policies.</p>
+
+        <h3>4. Third-Party Sharing</h3>
+        <p>Your information is never sold. It is only shared with trusted partners for payment processing, identity verification, fraud prevention, or to comply with legal obligations.</p>
+
+        <h3>5. Cookies & Tracking Technologies</h3>
+        <p>Cookies help us improve load speeds, personalize activity, and analyze performance. You may disable cookies in your browser settings at any time.</p>
+
+        <h3>6. GDPR / CCPA Compliance</h3>
+        <p>Depending on your location, you retain the right to access, delete, restrict, or export your information. We support data transparency and user privacy rights globally.</p>
+
+        <h3>7. Policy Updates</h3>
+        <p>We may update this Privacy Policy periodically. We will notify users in the event of major changes. Continued use of the platform means you accept the updated terms.</p>
+
+        <div class="center-buttons">
+            <button class="btn" onclick="window.location.href='signup.html'">Create Account</button>
+            <button class="btn" onclick="window.location.href='login.html'">Login</button>
+            <button class="btn" onclick="window.location.href='index.html'">Introduction</button>
+        </div>
+
+    </section>
+
+    <!-- BACK TO TOP -->
+    <button id="backToTop" onclick="window.scrollTo({ top: 0, behavior:'smooth' });">↑</button>
+
+    <script>
+        // Show button on scroll
+        window.addEventListener("scroll", () => {
+            document.getElementById("backToTop").style.display =
+                window.scrollY > 300 ? "block" : "none";
+        });
+    </script>
+
+    <!-- FOOTER -->
+    <footer>
+        <a href="terms.html">Terms</a>
+        <a href="policy.html">Policy</a>
+        <a href="support.html">Support</a>
+    </footer>
+
+</body>
+</html>

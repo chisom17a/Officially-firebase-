@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chiearn Hub - Tasks</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --primary:#0d6efd;
+  --bg:#f4f7fa;
+  --white:#fff;
+}
+*{box-sizing:border-box;font-family:Inter}
+body{margin:0;background:var(--bg)}
+header{background:#fff;padding:15px;font-weight:600}
+.container{max-width:900px;margin:auto;padding:25px}
+.task-row{
+  display:grid;
+  grid-template-columns:1fr 120px 120px;
+  background:#fff;
+  padding:15px;
+  margin-bottom:10px;
+  border-radius:10px;
+}
+.perform-btn{
+  background:var(--primary);
+  color:#fff;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+.perform-btn:disabled{
+  background:#94a3b8;
+}
+</style>
+</head>
+
+<body>
+
+<header>Chiearn Hub</header>
+
+<button onclick="location.href='earner.html'">Back to Home</button>
+
+<div class="container">
+  <h2>Available Tasks</h2>
+  <div id="taskList"></div>
+</div>
+
+<script>
+/* ================= AUTH ================= */
+const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+const users = JSON.parse(localStorage.getItem("users")) || [];
+
+if(!currentUser) location.href="login.html";
+
+const user = users.find(
+  u => u.email === currentUser.email && u.model === "Earner"
+);
+if(!user) location.href="login.html";
+
+/* ================= LOAD LIVE TASKS ================= */
+const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+const submissions = JSON.parse(localStorage.getItem("taskSubmissions")) || [];
+
+function renderTasks(){
+  const list = document.getElementById("taskList");
+  list.innerHTML = "";
+
+  if(tasks.length === 0){
+    list.innerHTML = "<p>No tasks available at the moment.</p>";
+    return;
+  }
+
+  tasks.forEach(task=>{
+    const alreadySubmitted = submissions.some(
+      s => s.userId === user.id && s.taskId === task.id
+    );
+
+    list.innerHTML += `
+      <div class="task-row">
+        <div>${task.title}</div>
+        <div>₦${task.reward}</div>
+        <button class="perform-btn"
+          ${alreadySubmitted ? "disabled" : ""}
+          onclick="location.href='task.html?id=${task.id}'">
+          ${alreadySubmitted ? "Pending" : "Perform"}
+        </button>
+      </div>
+    `;
+  });
+}
+
+renderTasks();
+</script>
+
+</body>
+</html>

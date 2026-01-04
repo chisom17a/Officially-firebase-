@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chiearn Hub - Advertiser Dashboard</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    body {
+      background: #f4f6f9;
+      color: #1e293b;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 70px;
+      background: linear-gradient(180deg, #1e293b, #0f172a);
+      height: 100vh;
+      position: fixed;
+      overflow: hidden;
+      transition: width 0.3s;
+      padding-top: 20px;
+    }
+
+    .sidebar:hover {
+      width: 220px;
+    }
+
+    .logo {
+      color: #fff;
+      font-size: 20px;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 40px;
+      white-space: nowrap;
+    }
+
+    .menu a {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 15px 20px;
+      color: #cbd5e1;
+      text-decoration: none;
+      transition: all 0.3s;
+    }
+
+    .menu a:hover {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+
+    .menu span:last-child {
+      opacity: 0;
+      transition: opacity 0.3s;
+      white-space: nowrap;
+    }
+
+    .sidebar:hover .menu span:last-child {
+      opacity: 1;
+    }
+
+    /* MAIN */
+    .main {
+      margin-left: 70px;
+      padding: 30px;
+      transition: margin-left 0.3s;
+    }
+
+    .sidebar:hover ~ .main {
+      margin-left: 220px;
+    }
+
+    .header {
+      background: #fff;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 26px;
+    }
+
+    /* CARDS */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: #fff;
+      padding: 25px;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+    }
+
+    .card h2 {
+      font-size: 15px;
+      color: #64748b;
+      margin-bottom: 10px;
+    }
+
+    .value {
+      font-size: 30px;
+      font-weight: 600;
+    }
+
+    .btn {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #fff;
+      cursor: pointer;
+      margin-top: 10px;
+      margin-right: 10px;
+    }
+
+    .btn.secondary {
+      background: #0f172a;
+    }
+
+    .referral {
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: #fff;
+    }
+
+    .referral input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      margin: 15px 0;
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo">Chiearn</div>
+  <div class="menu">
+    <a href="#"><span>🏠</span><span>Dashboard</span></a>
+    <a href="posttask.html"><span>📝</span><span>Post Task</span></a>
+    <a href="deposit.html"><span>💰</span><span>Deposit</span></a>
+    <a href="Adprofile.html"><span>👤</span><span>Profile</span></a>
+    <a href="#" onclick="logout()" style="color:#f87171;"><span>🚪</span><span>Logout</span></a>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="header">
+    <h1 id="welcomeText">Advertiser Dashboard</h1>
+  </div>
+
+  <div class="grid">
+
+    <div class="card">
+      <h2>Available Balance</h2>
+      <div class="value" id="balance">₦0</div>
+      <button class="btn" onclick="location.href='posttask.html'">Post Task</button>
+      <button class="btn secondary" onclick="location.href='deposit.html'">Deposit</button>
+    </div>
+
+    <div class="card referral">
+      <h2>Referral Program</h2>
+      <input type="text" id="refLink" readonly>
+      <button class="btn" onclick="copyReferral()">Copy Link</button>
+      <p>✔ 0.5% advertiser deposit</p>
+      <p>✔ ₦500 per activated earner</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- FIREBASE SCRIPT -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+  import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
+    authDomain: "chiearnhub-5ba9e.firebaseapp.com",
+    projectId: "chiearnhub-5ba9e",
+    storageBucket: "chiearnhub-5ba9e.firebasestorage.app",
+    messagingSenderId: "332513744974",
+    appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  let userRef;
+
+  // ===== AUTH CHECK =====
+  onAuthStateChanged(auth, user => {
+    if (!user) {
+      alert("Please login");
+      window.location.href = "login.html";
+      return;
+    }
+
+    userRef = doc(db, "users", user.uid);
+
+    // REAL-TIME USER DATA
+    onSnapshot(userRef, snap => {
+      if (!snap.exists()) {
+        alert("User record not found");
+        signOut(auth);
+        window.location.href = "login.html";
+        return;
+      }
+
+      const data = snap.data();
+
+      if (data.model !== "Advertiser") {
+        alert("Unauthorized access");
+        signOut(auth);
+        window.location.href = "login.html";
+        return;
+      }
+
+      document.getElementById("welcomeText").textContent =
+        `Welcome, ${data.username}`;
+
+      document.getElementById("balance").textContent =
+        "₦" + (data.balance || 0).toLocaleString();
+
+      document.getElementById("refLink").value =
+        `https://chiearnhub.com/signup?ref=${encodeURIComponent(data.username)}`;
+    });
+  });
+
+  // ===== FUNCTIONS =====
+  window.copyReferral = () => {
+    navigator.clipboard.writeText(refLink.value);
+    alert("Referral link copied!");
+  };
+
+  window.logout = async () => {
+    await signOut(auth);
+    window.location.href = "login.html";
+  };
+</script>
+
+</body>
+</html>

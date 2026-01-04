@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile - Chiearn Hub</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --primary:#0d6efd;
+  --bg:#f4f7fa;
+  --white:#fff;
+}
+*{box-sizing:border-box;font-family:'Inter',sans-serif}
+body{margin:0;background:var(--bg)}
+header{background:#fff;padding:15px 25px;font-size:22px;font-weight:600;color:var(--primary)}
+.container{max-width:900px;margin:auto;padding:25px}
+.profile-section{background:#fff;padding:20px;border-radius:12px;margin-bottom:20px}
+.profile-pic{width:120px;height:120px;border-radius:50%;object-fit:cover}
+input{width:100%;padding:10px;margin:8px 0;border-radius:8px;border:1px solid #ccc}
+button{padding:10px 15px;border:none;border-radius:8px;background:var(--primary);color:#fff;cursor:pointer}
+.toast{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  background:#111;
+  color:#fff;
+  padding:12px 18px;
+  border-radius:8px;
+  opacity:0;
+  transition:.3s;
+}
+.toast.show{opacity:1}
+</style>
+</head>
+
+<body>
+
+<header>Chiearn Hub – Profile</header>
+
+<div class="container">
+
+<button onclick="location.href='advertiser.html'">← Back to Dashboard</button>
+
+<!-- USER INFO -->
+<div class="profile-section">
+  <h3>User Info</h3>
+  <img id="profilePic" class="profile-pic">
+  <p><b>Username:</b> <span id="username"></span></p>
+  <p id="fullNameDisplay"></p>
+  <p><b>Email:</b> <span id="email"></span></p>
+  <p><b>Balance:</b> ₦<span id="balance"></span></p>
+
+  <label>Full Name</label>
+  <input id="fullNameInput" placeholder="Enter full name">
+  <button onclick="saveFullName()">Save Full Name</button>
+
+  <label>Change Profile Picture</label>
+  <input type="file" id="picInput" accept="image/*">
+  <button onclick="uploadPic()">Update Picture</button>
+</div>
+
+<!-- PASSWORD -->
+<div class="profile-section">
+  <h3>Change Password</h3>
+  <input type="password" id="currentPass" placeholder="Current password">
+  <input type="password" id="newPass" placeholder="New password">
+  <input type="password" id="confirmPass" placeholder="Confirm new password">
+  <button onclick="changePassword()">Update Password</button>
+</div>
+
+<!-- ACTIVITY -->
+<div class="profile-section">
+  <h3>Activities</h3>
+  <button onclick="location.href='activity.html'">View Activity Log</button>
+</div>
+
+</div>
+
+<div id="toast" class="toast"></div>
+
+<!-- 🔥 FIREBASE -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { 
+  getAuth,
+  onAuthStateChanged,
+  updatePassword,
+  EmailAuthProvider,
+  reauthenticateWithCredential
+} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import {
+  getFirestore,
+  doc,
+  updateDoc,
+  onSnapshot
+} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
+  authDomain: "chiearnhub-5ba9e.firebaseapp.com",
+  projectId: "chiearnhub-5ba9e",
+  storageBucket: "chiearnhub-5ba9e.firebasestorage.app",
+  messagingSenderId: "332513744974",
+  appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let userRef;
+let currentUser;
+
+/* 🔐 AUTH CHECK */
+onAuthStateChanged(auth, user => {
+  if (!user) {
+    location.href = "login.html";
+    return;
+  }
+
+  currentUser = user;
+  userRef = doc(db, "users", user.uid);
+
+  onSnapshot(userRef, snap => {
+    if (!snap.exists()) return;
+    const u = snap.data();
+
+    username.innerText = u.username || "";
+    email.innerText = u.email;
+    balance.innerText = u.balance || 0;
+    profilePic.src = u.profilePic || "https://via.placeholder.com/120";
+
+    if (u.fullName) {
+      fullNameDisplay.innerHTML = `<b>Full Name:</b> ${u.fullName}`;
+      fullNameInput.value = u.fullName;
+    }
+  });
+});
+
+/* 🔔 TOAST */
+function toast(msg){
+  const t=document.getElementById("toast");
+  t.innerText=msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"),2500);
+}
+
+/* FULL NAME */
+window.saveFullName = async ()=>{
+  const name=fullNameInput.value.trim();
+  if(!name) return toast("Full name required");
+  await updateDoc(userRef,{fullName:name});
+  toast("Full name updated");
+};
+
+/* PASSWORD CHANGE (SECURE) */
+window.changePassword = async ()=>{
+  const current = currentPass.value;
+  const newP = newPass.value;
+  const confirm = confirmPass.value;
+
+  if(!current || !newP || !confirm)
+    return toast("All password fields required");
+
+  if(newP.length < 6)
+    return toast("Password must be at least 6 characters");
+
+  if(newP !== confirm)
+    return toast("Passwords do not match");
+
+  try {
+    const cred = EmailAuthProvider.credential(
+      currentUser.email,
+      current
+    );
+
+    await reauthenticateWithCredential(currentUser, cred);
+    await updatePassword(currentUser, newP);
+
+    toast("Password updated successfully");
+    currentPass.value = newPass.value = confirmPass.value = "";
+
+  } catch (err) {
+    toast("Current password is incorrect");
+  }
+};
+
+/* PROFILE PICTURE */
+window.uploadPic = async ()=>{
+  const file=picInput.files[0];
+  if(!file) return toast("Select an image");
+
+  const fd=new FormData();
+  fd.append("image",file);
+
+  const res=await fetch(
+    "https://api.imgbb.com/1/upload?key=YOUR_IMGBB_API_KEY",
+    { method:"POST", body:fd }
+  );
+  const data=await res.json();
+  await updateDoc(userRef,{profilePic:data.data.url});
+  toast("Profile picture updated");
+};
+</script>
+
+</body>
+</html>

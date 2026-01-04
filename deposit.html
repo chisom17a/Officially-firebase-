@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deposit - Chiearn Hub</title>
+<style>
+:root {
+  --primary: #0d6efd;
+  --bg: #f4f7fa;
+  --white: #fff;
+  --shadow: rgba(0,0,0,.1);
+}
+
+* { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+body { margin: 0; background: var(--bg); }
+header { background: var(--white); padding: 15px 25px; font-size: 22px; font-weight: 600; color: var(--primary); box-shadow: 0 2px 8px var(--shadow);}
+.container { max-width: 500px; margin: 50px auto; padding: 25px; background: var(--white); border-radius: 12px; box-shadow: 0 4px 12px var(--shadow); text-align: center; }
+
+input, select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
+input:focus, select:focus { outline: none; border-color: var(--primary); }
+button { padding: 12px 20px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; background: var(--primary); color: #fff; font-size: 16px; margin-top: 10px; }
+button:hover { background: #084dbf; }
+
+#loading {
+  display: none;
+  margin-top: 20px;
+  font-size: 16px;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid var(--primary);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  margin: 15px auto;
+  animation: spin 1s linear infinite;
+}
+
+/* Nav buttons */
+.nav-buttons { display: flex; justify-content: space-between; margin-top: 20px; }
+.nav-buttons button { width: 30%; font-size: 14px; padding: 10px; }
+</style>
+</head>
+<body>
+
+<header>Chiearn Hub - Deposit</header>
+<div class="container" id="depositContainer">
+  <h2>Make a Deposit</h2>
+  <p>Deposit below the minimum deposit will face issues being credited</p>
+
+  <input type="number" id="amount" placeholder="Enter amount to deposit" min="1" required>
+  
+  <select id="method">
+    <option value="">Select Deposit Method</option>
+    <option value="bank">Bank Transfer</option>
+    <option value="card">Manual</option>
+    <option value="ussd">Minipay</option>
+    <option value="Crypto">Crypto</option>
+  </select>
+
+  <p>Minimum deposit is ₦200. Deposit below 500₦ attract a service fee of 2.5%,</p>
+  <p>A deposit of above ₦10,000 attracts a service fee of ₦50 + 1% of the deposit amount </p>
+
+  <button id="proceedBtn">Proceed</button>
+
+  <div class="nav-buttons">
+    <button onclick="window.location.href='advertiser.html'">Back</button>
+    <button onclick="window.location.href='deposithistory.html'">History</button>
+    <button onclick="window.location.href='profile.html'">Profile</button>
+  </div>
+
+  <div id="loading">
+    <div class="spinner"></div>
+    Processing your deposit...
+  </div>
+</div>
+
+<script>
+const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+const users = JSON.parse(localStorage.getItem("users")) || [];
+
+// Only authenticated Advertisers can access
+if(!currentUser){
+  alert("You must log in to access this page.");
+  window.location.href = "login.html";
+}
+
+const user = users.find(u=>u.email===currentUser.email && u.model==="Advertiser");
+if(!user){
+  alert("Unauthorized access. Only advertisers can deposit.");
+  window.location.href = "login.html";
+}
+
+// Proceed button
+document.getElementById("proceedBtn").addEventListener("click", ()=>{
+  const amount = parseFloat(document.getElementById("amount").value);
+  const method = document.getElementById("method").value;
+
+  if(isNaN(amount) || amount <= 0){
+    alert("Please enter a valid deposit amount.");
+    return;
+  }
+  if(!method){
+    alert("Please select a deposit method.");
+    return;
+  }
+
+  // Show loading
+  document.getElementById("depositContainer").innerHTML = `
+    <div id="loading">
+      <div class="spinner"></div>
+      Connecting to secure deposit servers....
+    </div>
+  `;
+  document.getElementById("loading").style.display = "block";
+
+  // Save deposit info in localStorage (optional)
+  let deposits = JSON.parse(localStorage.getItem("deposits")) || [];
+  deposits.push({
+    userId: user.id,
+    email: user.email,
+    amount: amount,
+    method: method,
+    status: "pending",
+    date: new Date().toISOString()
+  });
+  localStorage.setItem("deposits", JSON.stringify(deposits));
+
+  // Redirect after 3 seconds to the deposit method page
+  setTimeout(()=>{
+    switch(method){
+      case "bank": window.location.href = "deposit-bank.html"; break;
+      case "card": window.location.href = "deposit-card.html"; break;
+      case "ussd": window.location.href = "deposit-ussd.html"; break;
+      case "Crypto": window.location.href = "deposit-crypto.html"; break;
+      default: alert("Invalid method"); break;
+    }
+  }, 3000);
+});
+</script>
+
+</body>
+</html>

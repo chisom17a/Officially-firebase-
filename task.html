@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Perform Task</title>
+<style>
+body{font-family:Inter;background:#f4f7fa;padding:20px}
+.box{background:#fff;max-width:500px;margin:auto;padding:20px;border-radius:10px}
+input,textarea,button{width:100%;margin:10px 0;padding:10px}
+button{background:#0d6efd;color:#fff;border:none;border-radius:6px}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+  <h2 id="title"></h2>
+  <p><b>Reward:</b> ₦<span id="price"></span></p>
+  <p><b>Proof Required:</b> <span id="proof"></span></p>
+
+  <a id="visit" target="_blank">
+    <button>Visit Task</button>
+    <button type="button" class="btn secondary" onclick="location.href='earner.html'">BACK TO HOME</button>
+
+  </a>
+
+  <textarea id="textProof" placeholder="Text proof (required)"></textarea>
+  <input type="file" id="imageProof" accept="image/*">
+
+  <button onclick="submitTask()">Submit Task</button>
+</div>
+
+<script>
+/* ===== AUTH ===== */
+const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+const users = JSON.parse(localStorage.getItem("users")) || [];
+
+if(!currentUser) location.href="login.html";
+
+const user = users.find(
+  u => u.email === currentUser.email && u.model === "Earner"
+);
+if(!user) location.href="login.html";
+
+/* ===== GET TASK ===== */
+const params = new URLSearchParams(location.search);
+const taskId = params.get("id");
+
+const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+const task = tasks.find(t => t.id === taskId);
+
+if(!task){
+  alert("Task not found");
+  location.href="tasks.html";
+}
+
+/* ===== RENDER ===== */
+document.getElementById("title").innerText = task.title;
+document.getElementById("price").innerText = task.reward;
+document.getElementById("proof").innerText = task.proofTitle;
+document.getElementById("visit").href = task.link;
+
+/* ===== SUBMIT ===== */
+function submitTask(){
+  const text = document.getElementById("textProof").value.trim();
+  if(!text){
+    alert("Text proof required");
+    return;
+  }
+
+  const file = document.getElementById("imageProof").files[0];
+  const reader = new FileReader();
+
+  reader.onload = ()=>{
+    const submissions = JSON.parse(localStorage.getItem("taskSubmissions")) || [];
+
+    submissions.push({
+      id: crypto.randomUUID(),
+      taskId: task.id,
+      taskTitle: task.title,
+      reward: task.reward,
+      userId: user.id,
+      userEmail: user.email,
+      textProof: text,
+      imageProof: file ? reader.result : "",
+      status: "pending",
+      date: new Date().toISOString()
+    });
+
+    localStorage.setItem("taskSubmissions", JSON.stringify(submissions));
+    alert("Task submitted for review");
+    location.href="tasks.html";
+  };
+
+  if(file) reader.readAsDataURL(file);
+  else reader.onload();
+}
+</script>
+
+</body>
+</html>

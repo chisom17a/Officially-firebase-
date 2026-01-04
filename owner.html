@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard - Chiearn Hub</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --primary: #2563eb;
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --danger: #dc2626;
+  --bg: #f4f7fa;
+  --white: #ffffff;
+  --shadow: rgba(0,0,0,0.1);
+}
+
+* {
+  box-sizing: border-box;
+  font-family: Inter, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+}
+
+header {
+  background: var(--white);
+  padding: 18px 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 8px var(--shadow);
+}
+
+header h1 {
+  color: var(--primary);
+  font-size: 22px;
+}
+
+.logout {
+  background: var(--danger);
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.container {
+  max-width: 1100px;
+  margin: auto;
+  padding: 25px;
+}
+
+/* ===== STATS GRID ===== */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: var(--white);
+  padding: 22px;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px var(--shadow);
+}
+
+.stat-card h3 {
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.stat-card .value {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+/* COLORS */
+.blue { color: var(--primary); }
+.green { color: var(--success); }
+.orange { color: var(--warning); }
+.red { color: var(--danger); }
+
+/* QUICK LINKS */
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.links a {
+  background: var(--primary);
+  color: white;
+  padding: 12px 18px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.links a:hover {
+  opacity: 0.9;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>Admin Dashboard</h1>
+  <button class="logout" onclick="logout()">Logout</button>
+</header>
+
+<div class="container">
+
+  <!-- USER STATS -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <h3>Total Users</h3>
+      <div class="value blue" id="totalUsers">0</div>
+    </div>
+
+    <div class="stat-card">
+      <h3>Earners</h3>
+      <div class="value blue" id="earners">0</div>
+    </div>
+
+    <div class="stat-card">
+      <h3>Advertisers</h3>
+      <div class="value blue" id="advertisers">0</div>
+    </div>
+
+    <div class="stat-card">
+      <h3>Admins</h3>
+      <div class="value blue" id="admins">0</div>
+    </div>
+
+    <div class="stat-card">
+      <h3>Activated Users</h3>
+      <div class="value green" id="activatedUsers">0</div>
+    </div>
+
+    <div class="stat-card">
+      <h3>Pending Activations</h3>
+      <div class="value orange" id="pendingActivations">0</div>
+    </div>
+  </div>
+
+  <!-- TASK STATS -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <h3>Total Task Submissions</h3>
+      <div class="value blue" id="totalTasks">0</div>
+    </div>
+
+    <div class="stat-card">
+      <h3>Pending Tasks</h3>
+      <div class="value orange" id="pendingTasks">0</div>
+    </div>
+
+    <div class="stat-card">
+      <h3>Approved Tasks</h3>
+      <div class="value green" id="approvedTasks">0</div>
+    </div>
+
+    <div class="stat-card">
+      <h3>Rejected Tasks</h3>
+      <div class="value red" id="rejectedTasks">0</div>
+    </div>
+
+    <div class="stat-card">
+      <h3>Total Payouts (₦)</h3>
+      <div class="value green" id="totalPayouts">₦0</div>
+    </div>
+  </div>
+
+  <!-- QUICK LINKS -->
+  <div class="links">
+    <a href="admin-task-review.html">Review Tasks</a>
+    <a href="admin-activation.html">Activation Requests</a>
+    <a href="admin-users.html">Manage Users</a>
+  </div>
+
+</div>
+
+<script>
+/* =====================================================
+   AUTH CHECK (ADMIN ONLY)
+===================================================== */
+const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+const users = JSON.parse(localStorage.getItem("users")) || [];
+
+if (!currentUser) {
+  location.href = "login.html";
+}
+
+const admin = users.find(
+  u => u.email === currentUser.email && u.model === "Admin"
+);
+
+if (!admin) {
+  alert("Unauthorized access");
+  location.href = "login.html";
+}
+
+/* =====================================================
+   LOAD DATA
+===================================================== */
+const taskSubmissions =
+  JSON.parse(localStorage.getItem("taskSubmissions")) ||
+  JSON.parse(localStorage.getItem("taskActivities")) ||
+  [];
+
+const activationRequests =
+  JSON.parse(localStorage.getItem("activationRequests")) || [];
+
+/* =====================================================
+   USER STATS
+===================================================== */
+document.getElementById("totalUsers").innerText = users.length;
+document.getElementById("earners").innerText =
+  users.filter(u => u.model === "Earner").length;
+document.getElementById("advertisers").innerText =
+  users.filter(u => u.model === "Advertiser").length;
+document.getElementById("admins").innerText =
+  users.filter(u => u.model === "Admin").length;
+
+document.getElementById("activatedUsers").innerText =
+  users.filter(u => u.activated === true).length;
+
+document.getElementById("pendingActivations").innerText =
+  activationRequests.length;
+
+/* =====================================================
+   TASK STATS
+===================================================== */
+document.getElementById("totalTasks").innerText =
+  taskSubmissions.length;
+
+document.getElementById("pendingTasks").innerText =
+  taskSubmissions.filter(t => t.status === "pending").length;
+
+document.getElementById("approvedTasks").innerText =
+  taskSubmissions.filter(t => t.status === "approved").length;
+
+document.getElementById("rejectedTasks").innerText =
+  taskSubmissions.filter(t => t.status === "rejected").length;
+
+const totalPayouts = taskSubmissions
+  .filter(t => t.status === "approved")
+  .reduce((sum, t) => sum + (t.reward || 0), 0);
+
+document.getElementById("totalPayouts").innerText = "₦" + totalPayouts;
+
+/* =====================================================
+   LOGOUT
+===================================================== */
+function logout() {
+  localStorage.removeItem("currentUser");
+  location.href = "login.html";
+}
+</script>
+
+</body>
+</html>
