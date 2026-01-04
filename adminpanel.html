@@ -57,7 +57,7 @@ body{display:flex;background:#f2f5fb;min-height:100vh}
   box-shadow:0 4px 12px rgba(0,0,0,.06)
 }
 .card h3{font-size:16px;color:#475569}
-.card p{font-size:26px;font-weight:700}
+.card p{font-size:28px;font-weight:700}
 </style>
 </head>
 
@@ -91,7 +91,6 @@ body{display:flex;background:#f2f5fb;min-height:100vh}
   </div>
 </div>
 
-<!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
@@ -110,7 +109,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-/* ===== AUTH CHECK (LIKE EARNER / ADVERTISER) ===== */
+/* ===== AUTH CHECK ===== */
 const storedUser = JSON.parse(localStorage.getItem("currentUser"));
 
 if (!storedUser) {
@@ -125,15 +124,14 @@ onAuthStateChanged(auth, async user => {
     return;
   }
 
-  const snap = await getDoc(doc(db, "users", user.uid));
-  if (!snap.exists()) {
+  const userSnap = await getDoc(doc(db, "users", user.uid));
+  if (!userSnap.exists()) {
     alert("User record not found");
     location.href = "login.html";
     return;
   }
 
-  const data = snap.data();
-
+  const data = userSnap.data();
   if (data.model !== "Admin") {
     alert("Unauthorized access");
     location.href = "login.html";
@@ -144,22 +142,26 @@ onAuthStateChanged(auth, async user => {
     `Welcome, ${data.username || data.email}`;
 });
 
-/* ===== REAL-TIME STATS ===== */
-onSnapshot(collection(db, "users"), snap => {
-  let total = 0, earners = 0, advertisers = 0, admins = 0;
+/* ===== REAL FIRESTORE COUNTS ===== */
+onSnapshot(collection(db, "users"), snapshot => {
+  let total = 0;
+  let earners = 0;
+  let advertisers = 0;
+  let admins = 0;
 
-  snap.forEach(doc => {
+  snapshot.forEach(docSnap => {
     total++;
-    const m = doc.data().model;
-    if (m === "Earner") earners++;
-    if (m === "Advertiser") advertisers++;
-    if (m === "Admin") admins++;
+    const role = docSnap.data().model;
+
+    if (role === "Earner") earners++;
+    else if (role === "Advertiser") advertisers++;
+    else if (role === "Admin") admins++;
   });
 
-  totalUsers.textContent = total;
-  earnersCount.textContent = earners;
-  advertisersCount.textContent = advertisers;
-  adminsCount.textContent = admins;
+  document.getElementById("totalUsers").textContent = total;
+  document.getElementById("earnersCount").textContent = earners;
+  document.getElementById("advertisersCount").textContent = advertisers;
+  document.getElementById("adminsCount").textContent = admins;
 });
 
 /* ===== UI ===== */
