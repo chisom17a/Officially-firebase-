@@ -1,182 +1,171 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Chiearn Hub - Admin Panel</title>
+<!DOCTYPE html>  
+<html lang="en">  
+<head>  
+<meta charset="UTF-8">  
+<title>Chiearn Hub - Admin Panel</title>  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">  <style>  
+*{margin:0;padding:0;box-sizing:border-box;font-family:Poppins,sans-serif}  
+body{display:flex;background:#f2f5fb;min-height:100vh}  
+  
+.sidebar{  
+  width:260px;background:#1e293b;color:#fff;  
+  position:fixed;left:-260px;top:0;height:100%;  
+  padding:25px 20px;transition:.3s  
+}  
+.sidebar.active{left:0}  
+  
+.sidebar h2{text-align:center;margin-bottom:25px}  
+  
+.sidebar a{  
+  display:block;padding:12px 15px;color:#cbd5e1;  
+  text-decoration:none;border-radius:6px;margin-bottom:8px  
+}  
+.sidebar a:hover{background:#334155}  
+  
+.logout-btn{  
+  margin-top:20px;padding:12px;background:#ef4444;  
+  color:#fff;border:none;width:100%;  
+  border-radius:6px;cursor:pointer  
+}  
+  
+.main{width:100%;padding:30px;transition:.3s}  
+.main.shifted{margin-left:260px}  
+  
+.top-bar{  
+  display:flex;justify-content:space-between;  
+  align-items:center;margin-bottom:25px  
+}  
+  
+.hamburger{  
+  font-size:24px;cursor:pointer;  
+  background:#fff;padding:8px 12px;  
+  border-radius:6px;  
+  box-shadow:0 2px 8px rgba(0,0,0,.1)  
+}  
+  
+.cards{  
+  display:grid;  
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));  
+  gap:20px  
+}  
+  
+.card{  
+  background:#fff;padding:20px;border-radius:12px;  
+  box-shadow:0 4px 12px rgba(0,0,0,.06)  
+}  
+.card h3{font-size:16px;color:#475569}  
+.card p{font-size:26px;font-weight:700}  
+</style>  </head>  <body>  <!-- SIDEBAR -->  <div class="sidebar" id="sidebar">  
+  <h2>Admin Panel</h2>  
+  <a href="user.html">Users</a>  
+  <a href="adcony.html">Ad Approval</a>  
+  <a href="admin-task-review.html">Task Approval</a>  
+  <a href="balcony.html">Balance Control</a>  
+  <a href="supportline.html">Support</a>  
+  <a href="taskmaster.html">Tasks</a>  
+  <a href="update.html">Updates</a>  
+  <button class="logout-btn" onclick="logout()">Logout</button>  
+</div>  <!-- MAIN -->  <div class="main" id="main">  
+  <div class="top-bar">  
+    <span class="hamburger" onclick="toggleSidebar()">☰</span>  
+    <h1 id="adminWelcome">Welcome, Admin</h1>  
+  </div>    <div class="cards">
+    <div class="card"><h3>Total Users</h3><p id="totalUsers">0</p></div>
+    <div class="card"><h3>Earners</h3><p id="earnersCount">0</p></div>
+    <div class="card"><h3>Advertisers</h3><p id="advertisersCount">0</p></div>
+    <div class="card"><h3>Admins</h3><p id="adminsCount">0</p></div>
+  </div>
 
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-
-<style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Poppins,sans-serif}
-body{display:flex;background:#f2f5fb;min-height:100vh}
-
-.sidebar{
-  width:260px;background:#1e293b;color:#fff;
-  position:fixed;left:-260px;top:0;height:100%;
-  padding:25px 20px;transition:.3s
-}
-.sidebar.active{left:0}
-
-.sidebar h2{text-align:center;margin-bottom:25px}
-
-.sidebar a{
-  display:block;padding:12px 15px;color:#cbd5e1;
-  text-decoration:none;border-radius:6px;margin-bottom:8px
-}
-.sidebar a:hover{background:#334155}
-
-.logout-btn{
-  margin-top:20px;padding:12px;background:#ef4444;
-  color:#fff;border:none;width:100%;
-  border-radius:6px;cursor:pointer
-}
-
-.main{width:100%;padding:30px;transition:.3s}
-.main.shifted{margin-left:260px}
-
-.top-bar{
-  display:flex;justify-content:space-between;
-  align-items:center;margin-bottom:25px
-}
-
-.hamburger{
-  font-size:24px;cursor:pointer;
-  background:#fff;padding:8px 12px;
-  border-radius:6px;
-  box-shadow:0 2px 8px rgba(0,0,0,.1)
-}
-
-.cards{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-  gap:20px
-}
-
-.card{
-  background:#fff;padding:20px;border-radius:12px;
-  box-shadow:0 4px 12px rgba(0,0,0,.06)
-}
-.card h3{font-size:16px;color:#475569}
-.card p{font-size:28px;font-weight:700}
-</style>
-</head>
-
-<body>
-
-<!-- SIDEBAR -->
-<div class="sidebar" id="sidebar">
-  <h2>Admin Panel</h2>
-  <a href="user.html">Users</a>
-  <a href="adcony.html">Ad Approval</a>
-  <a href="admin-task-review.html">Task Approval</a>
-  <a href="balcony.html">Balance Control</a>
-  <a href="supportline.html">Support</a>
-  <a href="taskmaster.html">Tasks</a>
-  <a href="update.html">Updates</a>
-  <button class="logout-btn" onclick="logout()">Logout</button>
-</div>
-
-<!-- MAIN -->
-<div class="main" id="main">
-  <div class="top-bar">
-    <span class="hamburger" onclick="toggleSidebar()">☰</span>
-    <h1 id="adminWelcome">Welcome, Admin</h1>
-  </div>
-
-  <div class="cards">
-    <div class="card"><h3>Total Users</h3><p id="totalUsers">0</p></div>
-    <div class="card"><h3>Earners</h3><p id="earnersCount">0</p></div>
-    <div class="card"><h3>Advertisers</h3><p id="advertisersCount">0</p></div>
-    <div class="card"><h3>Admins</h3><p id="adminsCount">0</p></div>
-  </div>
-</div>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-import { getFirestore, collection, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
-  authDomain: "chiearnhub-5ba9e.firebaseapp.com",
-  projectId: "chiearnhub-5ba9e",
-  storageBucket: "chiearnhub-5ba9e.firebasestorage.app",
-  messagingSenderId: "332513744974",
-  appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-/* ===== AUTH CHECK ===== */
-const storedUser = JSON.parse(localStorage.getItem("currentUser"));
-
-if (!storedUser) {
-  alert("Please login");
-  location.href = "login.html";
-}
-
-onAuthStateChanged(auth, async user => {
-  if (!user || user.uid !== storedUser.uid) {
-    alert("Session expired");
-    location.href = "login.html";
-    return;
-  }
-
-  const userSnap = await getDoc(doc(db, "users", user.uid));
-  if (!userSnap.exists()) {
-    alert("User record not found");
-    location.href = "login.html";
-    return;
-  }
-
-  const data = userSnap.data();
-  if (data.model !== "Admin") {
-    alert("Unauthorized access");
-    location.href = "login.html";
-    return;
-  }
-
-  document.getElementById("adminWelcome").innerText =
-    `Welcome, ${data.username || data.email}`;
-});
-
-/* ===== REAL FIRESTORE COUNTS ===== */
-onSnapshot(collection(db, "users"), snapshot => {
-  let total = 0;
-  let earners = 0;
-  let advertisers = 0;
-  let admins = 0;
-
-  snapshot.forEach(docSnap => {
-    total++;
-    const role = docSnap.data().model;
-
-    if (role === "Earner") earners++;
-    else if (role === "Advertiser") advertisers++;
-    else if (role === "Admin") admins++;
-  });
-
-  document.getElementById("totalUsers").textContent = total;
-  document.getElementById("earnersCount").textContent = earners;
-  document.getElementById("advertisersCount").textContent = advertisers;
-  document.getElementById("adminsCount").textContent = admins;
-});
-
-/* ===== UI ===== */
-window.toggleSidebar = () => {
-  sidebar.classList.toggle("active");
-  main.classList.toggle("shifted");
-};
-
-/* ===== LOGOUT ===== */
-window.logout = async () => {
-  await signOut(auth);
-  localStorage.removeItem("currentUser");
-  location.href = "login.html";
-};
-</script>
-
-</body>
-</html>
+</div>  <!-- FIREBASE -->  <script type="module">  
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";  
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";  
+import { getFirestore, collection, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";  
+  
+const firebaseConfig = {  
+  apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",  
+  authDomain: "chiearnhub-5ba9e.firebaseapp.com",  
+  projectId: "chiearnhub-5ba9e",  
+  storageBucket: "chiearnhub-5ba9e.firebasestorage.app",  
+  messagingSenderId: "332513744974",  
+  appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"  
+};  
+  
+const app = initializeApp(firebaseConfig);  
+const auth = getAuth(app);  
+const db = getFirestore(app);  
+  
+// Get references to HTML elements for displaying counts  
+const totalUsersElement = document.getElementById("totalUsers");  
+const earnersCountElement = document.getElementById("earnersCount");  
+const advertisersCountElement = document.getElementById("advertisersCount");  
+const adminsCountElement = document.getElementById("adminsCount");  
+const adminWelcomeElement = document.getElementById("adminWelcome"); // Also get this element  
+const sidebarElement = document.getElementById("sidebar");  
+const mainElement = document.getElementById("main");  
+  
+  
+/* ===== AUTH CHECK (LIKE EARNER / ADVERTISER) ===== */  
+const storedUser = JSON.parse(localStorage.getItem("currentUser"));  
+  
+if (!storedUser) {  
+  alert("Please login");  
+  location.href = "login.html";  
+}  
+  
+onAuthStateChanged(auth, async user => {  
+  if (!user || user.uid !== storedUser.uid) {  
+    alert("Session expired");  
+    location.href = "login.html";  
+    return;  
+  }  
+  
+  const snap = await getDoc(doc(db, "users", user.uid));  
+  if (!snap.exists()) {  
+    alert("User record not found");  
+    location.href = "login.html";  
+    return;  
+  }  
+  
+  const data = snap.data();  
+  
+  if (data.model !== "Admin") {  
+    alert("Unauthorized access");  
+    location.href = "login.html";  
+    return;  
+  }  
+  
+  adminWelcomeElement.innerText =  
+    `Welcome, ${data.username || data.email}`;  
+});  
+  
+/* ===== REAL-TIME STATS ===== */  
+onSnapshot(collection(db, "users"), snap => {  
+  let total = 0, earners = 0, advertisers = 0, admins = 0;  
+  
+  snap.forEach(doc => {  
+    total++;  
+    const m = doc.data().model;  
+    if (m === "Earner") earners++;  
+    else if (m === "Advertiser") advertisers++; // Use else if for mutually exclusive models  
+    else if (m === "Admin") admins++;  
+  });  
+  
+  totalUsersElement.textContent = total;  
+  earnersCountElement.textContent = earners;  
+  advertisersCountElement.textContent = advertisers;  
+  adminsCountElement.textContent = admins;  
+});  
+  
+/* ===== UI ===== */  
+window.toggleSidebar = () => {  
+  sidebarElement.classList.toggle("active");  
+  mainElement.classList.toggle("shifted");  
+};  
+  
+/* ===== LOGOUT ===== */  
+window.logout = async () => {  
+  await signOut(auth);  
+  localStorage.removeItem("currentUser");  
+  location.href = "login.html";  
+};  
+</script>  </body>  
+</html>  
