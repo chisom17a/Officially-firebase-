@@ -10,7 +10,6 @@
   --success:#16a34a;
   --danger:#dc2626;
   --bg:#f4f7fa;
-  --white:#fff;
 }
 *{box-sizing:border-box;font-family:Inter,sans-serif}
 body{margin:0;background:var(--bg)}
@@ -34,7 +33,7 @@ button{
 
 <div class="container" id="taskContainer"></div>
 
-<button onclick="location.href='adminpanel.html'">Home</button>
+<button onclick="location.href='adminpanel.html'">⬅ Back to Dashboard</button>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
@@ -47,14 +46,14 @@ import {
   onSnapshot,
   doc,
   getDoc,
-  setDoc,
   updateDoc,
   deleteDoc,
+  addDoc,
   increment,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
-/* ===== FIREBASE ===== */
+/* ================= FIREBASE ================= */
 const firebaseConfig = {
   apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
   authDomain: "chiearnhub-5ba9e.firebaseapp.com",
@@ -68,12 +67,16 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-/* ===== AUTH CHECK ===== */
-const storedUser = JSON.parse(localStorage.getItem("currentUser"));
-if (!storedUser) location.href="login.html";
+/* ================= AUTH CHECK ================= */
+const stored = JSON.parse(localStorage.getItem("currentUser"));
+if (!stored) location.href = "login.html";
 
 onAuthStateChanged(auth, async user => {
-  if (!user || user.uid !== storedUser.uid) location.href="login.html";
+  if (!user || user.uid !== stored.uid) {
+    alert("Session expired");
+    location.href="login.html";
+    return;
+  }
 
   const snap = await getDoc(doc(db,"users",user.uid));
   if (!snap.exists() || snap.data().model !== "Admin") {
@@ -82,18 +85,19 @@ onAuthStateChanged(auth, async user => {
   }
 });
 
-/* ===== LOAD PENDING TASKS ===== */
+/* ================= LOAD PENDING TASKS ================= */
 const container = document.getElementById("taskContainer");
 
 const q = query(
-  collection(db,"postedTasks"),
+  collection(db,"tasks"),
   where("status","==","pending")
 );
 
 onSnapshot(q, snap => {
-  container.innerHTML="";
+  container.innerHTML = "";
+
   if (snap.empty) {
-    container.innerHTML="<p>No pending task approvals.</p>";
+    container.innerHTML = "<p>No pending tasks.</p>";
     return;
   }
 
@@ -102,77 +106,76 @@ onSnapshot(q, snap => {
     const id = docSnap.id;
 
     const card = document.createElement("div");
-    card.className="card";
-    card.innerHTML=`
+    card.className = "card";
+
+    card.innerHTML = `
       <h3>${t.platform} – ${t.type}</h3>
       <div class="meta">
-        <b>Advertiser:</b> ${t.advertiserEmail}<br>
+        <b>User ID:</b> ${t.userId}<br>
         <b>Price:</b> ₦${t.price}<br>
-        <b>People:</b> ${t.amount}<br>
+        <b>People:</b> ${t.quantity}<br>
         <b>Total:</b> ₦${t.total}<br>
         <b>Link:</b> <a href="${t.link}" target="_blank">${t.link}</a><br>
         <b>Proof:</b> ${t.proofTitle}
       </div>
+
       <div class="actions">
         <button class="approve" onclick="approveTask('${id}')">Approve</button>
         <button class="reject" onclick="rejectTask('${id}')">Reject</button>
       </div>
     `;
+
     container.appendChild(card);
   });
 });
 
-/* ===== APPROVE ===== */
-window.approveTask = async id => {
-  const ref = doc(db,"postedTasks",id);
+/* ================= APPROVE ================= */
+window.approveTask = async (id) => {
+  const ref = doc(db,"tasks",id);
   const snap = await getDoc(ref);
   if (!snap.exists()) return;
 
   const t = snap.data();
 
-  await setDoc(doc(db,"liveTasks",id),{
+  // Create live task for earners
+  await addDoc(collection(db,"liveTasks"),{
     ...t,
-    status:"live",
-    remaining:t.amount,
-    approvedAt:serverTimestamp()
+    taskId: id,
+    remaining: t.quantity,
+    status: "live",
+    approvedAt: serverTimestamp()
   });
 
-  await updateDoc(ref,{status:"approved"});
-
-  await setDoc(doc(collection(db,"notifications")),{
-    email:t.advertiserEmail,
-    message:`✅ Your task (${t.platform}) is now live.`,
-    createdAt:serverTimestamp()
+  // Update original task
+  await updateDoc(ref,{
+    status: "approved"
   });
 
-  alert("Task approved");
+  alert("✅ Task approved and published!");
 };
 
-/* ===== REJECT ===== */
-window.rejectTask = async id => {
-  const reason = prompt("Reason for rejection?");
+/* ================= REJECT ================= */
+window.rejectTask = async (id) => {
+  const reason = prompt("Why are you rejecting this task?");
   if (!reason) return;
 
-  const ref = doc(db,"postedTasks",id);
+  const ref = doc(db,"tasks",id);
   const snap = await getDoc(ref);
   if (!snap.exists()) return;
 
   const t = snap.data();
 
-  await updateDoc(doc(db,"users",t.advertiserId),{
+  // Refund advertiser
+  await updateDoc(doc(db,"users",t.userId),{
     balance: increment(t.total)
   });
 
-  await setDoc(doc(collection(db,"notifications")),{
-    email:t.advertiserEmail,
-    message:`❌ Task rejected: ${reason}. ₦${t.total} refunded.`,
-    createdAt:serverTimestamp()
-  });
-
+  // Delete task
   await deleteDoc(ref);
-  alert("Task rejected and refunded");
+
+  alert("❌ Task rejected and advertiser refunded");
 };
 </script>
 
 </body>
-  </html>
+</html>
