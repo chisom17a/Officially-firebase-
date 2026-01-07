@@ -148,10 +148,43 @@
       border: none;
       margin: 10px 0;
     }
+
+    /* POPUP */
+    .popup {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #fff;
+      padding: 18px 22px;
+      border-radius: 12px;
+      box-shadow: 0 5px 20px rgba(0,0,0,.2);
+      z-index: 9999;
+      max-width: 90%;
+      display: none;
+    }
+
+    .popup .close {
+      float: right;
+      cursor: pointer;
+      font-weight: bold;
+      color: red;
+    }
   </style>
 </head>
 
 <body>
+
+<div class="popup" id="welcomePopup">
+  <span class="close" onclick="closePopup()">✖</span>
+  <p id="popupText"></p>
+  <p>
+    👉 WhatsApp:
+    <a href="https://chat.whatsapp.com/KG0U1mX9m8O9ZGSTbd8J3s" target="_blank">Join</a><br>
+    👉 Telegram:
+    <a href="https://t.me/glitz_withdraw" target="_blank">@glitz_withdraw</a>
+  </p>
+</div>
 
 <header>
   <div>
@@ -164,7 +197,11 @@
 <div id="sideMenu" class="side-menu">
   <span class="close-btn" onclick="closeMenu()">&times;</span>
   <a href="earner.html">Dashboard</a>
+  <a href="activation.html">Activate</a>
   <a href="task2.html">Tasks</a>
+  <a href="referral.html">Referral</a>
+  <a href="taskhistory.html">Past task</a>
+  <a href="supportlist.html">Support</a>
   <a href="withdraw.html">Withdraw</a>
   <a href="profile.html">Profile</a>
   <a href="history.html">History</a>
@@ -209,7 +246,6 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // ===== AUTH CHECK =====
   const currentUser = JSON.parse(localStorage.getItem("currentUser"));
 
   if (!currentUser) {
@@ -222,7 +258,6 @@
     window.location.href = "login.html";
   }
 
-  // ===== REAL-TIME USER DATA =====
   const userRef = doc(db, "users", currentUser.uid);
 
   onSnapshot(userRef, (snap) => {
@@ -234,11 +269,27 @@
 
     document.getElementById("welcomeText").textContent = `Welcome, ${username}`;
     document.getElementById("balance").textContent = "₦" + balance.toLocaleString();
-    document.getElementById("refLink").value =
-      `https://chiearnhuborg.netlify.app/signup?referral=${encodeURIComponent(username)}`;
+
+    // ✅ SAME FORMAT AS CODE 1
+    const baseURL = window.location.origin + "/?ref=";
+    document.getElementById("refLink").value = baseURL + username;
+
+    // POPUP
+    const popup = document.getElementById("welcomePopup");
+    const popupText = document.getElementById("popupText");
+
+    popupText.innerHTML = `Welcome <b>${username}</b>, you can join our chat groups.`;
+    popup.style.display = "block";
+
+    setTimeout(() => {
+      popup.style.display = "none";
+    }, 5000);
   });
 
-  // ===== UI FUNCTIONS (EXPOSED) =====
+  window.closePopup = () => {
+    document.getElementById("welcomePopup").style.display = "none";
+  };
+
   window.openMenu = () => {
     document.getElementById("sideMenu").style.width = "250px";
   };
