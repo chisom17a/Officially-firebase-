@@ -1,125 +1,127 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Chiearn Hub – Sign Up</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-
-  <style>
-    body {
-      font-family: Poppins, sans-serif;
-      background: linear-gradient(135deg, #e8f0ff, #ffffff);
-      margin: 0;
-    }
-    .signup-section {
-      max-width: 440px;
-      margin: 80px auto;
-      background: #fff;
-      padding: 40px;
-      border-radius: 18px;
-      box-shadow: 0 6px 25px rgba(0,0,0,0.1);
-    }
-    input, select, button {
-      width: 100%;
-      padding: 13px;
-      margin: 10px 0;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-    }
-    button {
-      background: #60a5fa;
-      border: none;
-      cursor: pointer;
-    }
-  </style>
-</head>
-
-<body>
-
-<section class="signup-section">
-  <h2>Create Account</h2>
-
-  <form id="signupForm">
-    <input id="username" placeholder="Username" required />
-    <input id="email" type="email" placeholder="Email" required />
-    <input id="phone" placeholder="Phone" required />
-    <input id="referral" placeholder="Referral (optional)" />
-    <input id="password" type="password" placeholder="Password" required />
-    <input id="repeatPassword" type="password" placeholder="Repeat Password" required />
-
-    <select id="model" required>
-      <option value="">Select role</option>
-      <option value="Earner">Earner</option>
-      <option value="Advertiser">Advertiser</option>
-      <option value="Admin">Admin</option>
-    </select>
-
-    <button type="submit">Sign Up</button>
-  </form>
-</section>
-
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-  import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-  import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
-    authDomain: "chiearnhub-5ba9e.firebaseapp.com",
-    projectId: "chiearnhub-5ba9e",
-    messagingSenderId: "332513744974",
-    appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
-  document.getElementById("signupForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    console.log("Signup started");
-
-    // --- Start of corrected lines ---
-    const username = document.getElementById("username").value.trim().toLowerCase();
-    const email = document.getElementById("email").value.trim().toLowerCase();
-    const phone = document.getElementById("phone").value.trim();
-    const referral = document.getElementById("referral").value.trim().toLowerCase();
-    const password = document.getElementById("password").value;
-    const repeatPassword = document.getElementById("repeatPassword").value;
-    const model = document.getElementById("model").value;
-    // --- End of corrected lines ---
-
-    if (password !== repeatPassword) {
-      alert("Passwords do not match");
-      return;
-    }
-
-    try {
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
-      console.log("Auth success:", cred.user.uid);
-
-      await setDoc(doc(db, "users", cred.user.uid), {
-        username: username,
-        email: email,
-        phone: phone,
-        model: model,
-        referral: referral,
-        balance: 0,
-        createdAt: serverTimestamp()
-      });
-
-      console.log("Firestore write success");
-      alert("Registration successful!");
-      window.location.href = "login.html";
-
-    } catch (err) {
-      console.error("Signup error:", err);
-      alert(err.message);
-    }
-  });
-</script>
-
-</body>
+<!DOCTYPE html>  
+<html lang="en">  
+<head>  
+  <meta charset="UTF-8" />  
+  <title>Chiearn Hub – Sign Up</title>  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />  
+  
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">  
+  
+  <style>  
+    body {  
+      font-family: Poppins, sans-serif;  
+      background: linear-gradient(135deg, #e8f0ff, #ffffff);  
+      margin: 0;  
+    }  
+    .signup-section {  
+      max-width: 440px;  
+      margin: 80px auto;  
+      background: #fff;  
+      padding: 40px;  
+      border-radius: 18px;  
+      box-shadow: 0 6px 25px rgba(0,0,0,0.1);  
+    }  
+    input, select, button {  
+      width: 100%;  
+      padding: 13px;  
+      margin: 10px 0;  
+      border-radius: 8px;  
+      border: 1px solid #ccc;  
+    }  
+    button {  
+      background: #60a5fa;  
+      border: none;  
+      cursor: pointer;  
+      font-weight: 600;
+      color: #fff;
+    }  
+  </style>  
+</head>  
+  
+<body>  
+  
+<section class="signup-section">  
+  <h2>Create Account</h2>  
+  
+  <form id="signupForm">  
+    <input id="username" placeholder="Username" required />  
+    <input id="email" type="email" placeholder="Email" required />  
+    <input id="phone" placeholder="Phone" required />  
+    <input id="referral" placeholder="Referral (optional)" />  
+    <input id="password" type="password" placeholder="Password" required />  
+    <input id="repeatPassword" type="password" placeholder="Repeat Password" required />  
+  
+    <select id="model" required>  
+      <option value="">Select role</option>  
+      <option value="Earner">Earner</option>  
+      <option value="Advertiser">Advertiser</option> 
+    </select>  
+  
+    <button type="submit">Sign Up</button>  
+  </form>  
+</section>  
+  
+<script type="module">  
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";  
+  import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";  
+  import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";  
+  
+  const firebaseConfig = {  
+    apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",  
+    authDomain: "chiearnhub-5ba9e.firebaseapp.com",  
+    projectId: "chiearnhub-5ba9e",  
+    storageBucket: "chiearnhub-5ba9e.firebasestorage.app",  
+    messagingSenderId: "332513744974",  
+    appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"  
+  };  
+  
+  const app = initializeApp(firebaseConfig);  
+  const auth = getAuth(app);  
+  const db = getFirestore(app);  
+  
+  document.getElementById("signupForm").addEventListener("submit", async (e) => {  
+    e.preventDefault();  
+    console.log("Signup started");  
+  
+    const username = document.getElementById("username").value.trim().toLowerCase();  
+    const email = document.getElementById("email").value.trim().toLowerCase();  
+    const phone = document.getElementById("phone").value.trim();  
+    const referral = document.getElementById("referral").value.trim().toLowerCase();  
+    const password = document.getElementById("password").value;  
+    const repeatPassword = document.getElementById("repeatPassword").value;  
+    const model = document.getElementById("model").value;  
+  
+    if (password !== repeatPassword) {  
+      alert("Passwords do not match");  
+      return;  
+    }  
+  
+    try {  
+      const cred = await createUserWithEmailAndPassword(auth, email, password);  
+      console.log("Auth success:", cred.user.uid);  
+  
+      await setDoc(doc(db, "users", cred.user.uid), {  
+        username: username,  
+        email: email,  
+        phone: phone,  
+        model: model,  
+        referral: referral,  
+        balance: 0,  
+        status: "pending",          // ✅ Account activation status  
+        referralCount: 0,           // ✅ Referral count  
+        createdAt: serverTimestamp()  
+      });  
+  
+      console.log("Firestore write success");  
+      alert("Registration successful!. Login to start amd enjoy");  
+      window.location.href = "login.html";  
+  
+    } catch (err) {  
+      console.error("Signup error:", err);  
+      alert(err.message);  
+    }  
+  });  
+</script>  
+  
+</body>  
 </html>
