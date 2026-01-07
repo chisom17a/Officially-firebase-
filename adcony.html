@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Admin – Task Approval</title>
+<title>Admin - Task Review</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 :root{
@@ -14,26 +15,26 @@
 *{box-sizing:border-box;font-family:Inter,sans-serif}
 body{margin:0;background:var(--bg)}
 header{background:#fff;padding:15px 25px;font-weight:700;color:var(--primary)}
-.container{max-width:1000px;margin:30px auto;padding:20px}
-.card{background:#fff;padding:20px;border-radius:12px;margin-bottom:20px}
-.meta{font-size:14px;color:#555;margin-bottom:10px}
+.container{max-width:1000px;margin:20px auto;padding:15px}
+.card{background:#fff;padding:20px;border-radius:12px;margin-bottom:15px}
+.meta{font-size:14px;color:#444;line-height:1.6}
 .actions{display:flex;gap:10px;margin-top:15px}
-button{
-  padding:10px 16px;border:none;border-radius:8px;
-  font-weight:600;cursor:pointer
-}
+button{padding:10px 16px;border:none;border-radius:8px;font-weight:600;cursor:pointer}
 .approve{background:var(--success);color:#fff}
 .reject{background:var(--danger);color:#fff}
+a{color:var(--primary)}
 </style>
 </head>
 
 <body>
 
-<header>Admin – Task Approval</header>
+<header>Admin Panel – Task Approval</header>
 
-<div class="container" id="taskContainer"></div>
+<div class="container" id="taskContainer">Loading...</div>
 
-<button onclick="location.href='adminpanel.html'">⬅ Back to Dashboard</button>
+<div style="text-align:center;margin-bottom:30px">
+  <button onclick="location.href='adminpanel.html'">⬅ Back to Dashboard</button>
+</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
@@ -67,31 +68,28 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-/* ================= AUTH CHECK ================= */
+/* ================= AUTH GUARD ================= */
 const stored = JSON.parse(localStorage.getItem("currentUser"));
 if (!stored) location.href = "login.html";
 
 onAuthStateChanged(auth, async user => {
   if (!user || user.uid !== stored.uid) {
     alert("Session expired");
-    location.href="login.html";
+    location.href = "login.html";
     return;
   }
 
   const snap = await getDoc(doc(db,"users",user.uid));
   if (!snap.exists() || snap.data().model !== "Admin") {
-    alert("Unauthorized");
-    location.href="login.html";
+    alert("Unauthorized access");
+    location.href = "login.html";
   }
 });
 
-/* ================= LOAD PENDING TASKS ================= */
+/* ================= LOAD TASKS ================= */
 const container = document.getElementById("taskContainer");
 
-const q = query(
-  collection(db,"tasks"),
-  where("status","==","pending")
-);
+const q = query(collection(db,"tasks"), where("status","==","pending"));
 
 onSnapshot(q, snap => {
   container.innerHTML = "";
@@ -101,22 +99,22 @@ onSnapshot(q, snap => {
     return;
   }
 
-  snap.forEach(docSnap => {
-    const t = docSnap.data();
-    const id = docSnap.id;
+  snap.forEach(d => {
+    const t = d.data();
+    const id = d.id;
 
-    const card = document.createElement("div");
-    card.className = "card";
+    const div = document.createElement("div");
+    div.className = "card";
 
-    card.innerHTML = `
-      <h3>${t.platform} – ${t.type}</h3>
+    div.innerHTML = `
+      <h3>${t.platform} - ${t.type}</h3>
       <div class="meta">
         <b>User ID:</b> ${t.userId}<br>
-        <b>Price:</b> ₦${t.price}<br>
-        <b>People:</b> ${t.quantity}<br>
+        <b>Price per person:</b> ₦${t.price}<br>
+        <b>Quantity:</b> ${t.quantity}<br>
         <b>Total:</b> ₦${t.total}<br>
-        <b>Link:</b> <a href="${t.link}" target="_blank">${t.link}</a><br>
-        <b>Proof:</b> ${t.proofTitle}
+        <b>Proof Title:</b> ${t.proofTitle}<br>
+        <b>Link:</b> <a href="${t.link}" target="_blank">${t.link}</a>
       </div>
 
       <div class="actions">
@@ -125,19 +123,20 @@ onSnapshot(q, snap => {
       </div>
     `;
 
-    container.appendChild(card);
+    container.appendChild(div);
   });
 });
 
 /* ================= APPROVE ================= */
 window.approveTask = async (id) => {
+  if (!confirm("Approve this task?")) return;
+
   const ref = doc(db,"tasks",id);
   const snap = await getDoc(ref);
   if (!snap.exists()) return;
 
   const t = snap.data();
 
-  // Create live task for earners
   await addDoc(collection(db,"liveTasks"),{
     ...t,
     taskId: id,
@@ -146,17 +145,14 @@ window.approveTask = async (id) => {
     approvedAt: serverTimestamp()
   });
 
-  // Update original task
-  await updateDoc(ref,{
-    status: "approved"
-  });
+  await updateDoc(ref,{ status: "approved" });
 
   alert("✅ Task approved and published!");
 };
 
 /* ================= REJECT ================= */
 window.rejectTask = async (id) => {
-  const reason = prompt("Why are you rejecting this task?");
+  const reason = prompt("Reason for rejection?");
   if (!reason) return;
 
   const ref = doc(db,"tasks",id);
