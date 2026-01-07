@@ -40,7 +40,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebas
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
 import {
   getFirestore, collection, query, where, onSnapshot,
-  doc, getDoc, updateDoc, deleteDoc, addDoc, serverTimestamp
+  doc, getDoc, updateDoc, addDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
 /* 🔥 FIREBASE CONFIG */
@@ -58,6 +58,19 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 const container = document.getElementById("taskContainer");
+
+/* ===== EARNER PRICE TABLE (YOU CAN CHANGE LATER) ===== */
+const earnerPrices = {
+  Gmail: { "Email Review": 15, "Email Send": 10 },
+  WhatsApp: { "Group Join": 20, "Channel Follow": 15, "Contact Save": 10, "Status Posting": 25 },
+  Telegram: { "Group Join": 18, "Channel Follow": 12 },
+  Instagram: { "Follow": 20, "Like": 10, "Comment": 18 },
+  Facebook: { "Like Page": 15, "Follow": 15 },
+  Twitter: { "Follow": 12, "Retweet": 10 },
+  TikTok: { "Follow": 18, "Like": 10 },
+  YouTube: { "Subscribe": 20, "Like Video": 10 },
+  Website: { "Visit Website": 10, "Sign Up": 25 }
+};
 
 /* ===== AUTH CHECK ===== */
 onAuthStateChanged(auth, async (user)=>{
@@ -94,7 +107,7 @@ function loadTasks(){
         <h3>${t.platform} – ${t.type}</h3>
         <div class="meta">
           <b>Poster UID:</b> ${t.userId}<br>
-          <b>Price per person:</b> ₦${t.price}<br>
+          <b>Advertiser Price:</b> ₦${t.price}<br>
           <b>People:</b> ${t.quantity}<br>
           <b>Total:</b> ₦${t.total}<br>
           <b>Remaining:</b> ${t.remaining}<br>
@@ -119,18 +132,26 @@ function loadTasks(){
 async function approveTask(taskId, task){
   if(!confirm("Approve this task?")) return;
 
+  // 🔥 Get earner price from table
+  const newPrice =
+    earnerPrices?.[task.platform]?.[task.type] || Math.floor(task.price * 0.6);
+
   // 1️⃣ Create in availabletasks
   await addDoc(collection(db,"availabletasks"),{
-    taskId: taskId,
+    sourceTaskId: taskId,
     posterId: task.userId,
     platform: task.platform,
     type: task.type,
     link: task.link,
     proofTitle: task.proofTitle,
-    price: task.price,
-    total: task.total,
+
+    advertiserPrice: task.price,  // what advertiser paid per task
+    earnerPrice: newPrice,         // what earner gets per task
+
     quantity: task.quantity,
     remaining: task.remaining,
+
+    status: "active",
     createdAt: serverTimestamp()
   });
 
