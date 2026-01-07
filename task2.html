@@ -20,16 +20,19 @@ header{background:#fff;padding:15px;font-weight:600}
 .task-row{
   display:grid;
   grid-template-columns:1fr 120px 120px;
+  gap:10px;
   background:#fff;
   padding:15px;
   margin-bottom:10px;
   border-radius:10px;
+  align-items:center;
 }
 .perform-btn{
   background:var(--primary);
   color:#fff;
   border:none;
   border-radius:6px;
+  padding:8px;
   cursor:pointer;
 }
 .perform-btn:disabled{
@@ -46,54 +49,143 @@ header{background:#fff;padding:15px;font-weight:600}
 
 <div class="container">
   <h2>Available Tasks</h2>
-  <div id="taskList"></div>
+  <div id="taskList">Loading...</div>
 </div>
 
-<script>
+<!-- 🔥 FIREBASE -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import {
+  getFirestore, collection, query, where, onSnapshot, getDoc, doc
+} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+
+/* 🔥 FIREBASE CONFIG */
+const firebaseConfig = {
+  apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
+  authDomain: "chiearnhub-5ba9e.firebaseapp.com",
+  projectId: "chiearnhub-5ba9e",
+  storageBucket: "chiearnhub-5ba9e.firebasestorage.app",
+  messagingSenderId: "332513744974",
+  appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const list = document.getElementById("taskList");
+
+let currentUser;
+let userData = {};
+let completedTasks = new Set();
+
 /* ================= AUTH ================= */
-const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-const users = JSON.parse(localStorage.getItem("users")) || [];
+onAuthStateChanged(auth, async (user)=>{
+  if(!user) return location.href="login.html";
 
-if(!currentUser) location.href="login.html";
+  currentUser = user;
 
-const user = users.find(
-  u => u.email === currentUser.email && u.model === "Earner"
-);
-if(!user) location.href="login.html";
+  const userSnap = await getDoc(doc(db,"users",user.uid));
 
-/* ================= LOAD LIVE TASKS ================= */
-const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
-const submissions = JSON.parse(localStorage.getItem("taskSubmissions")) || [];
-
-function renderTasks(){
-  const list = document.getElementById("taskList");
-  list.innerHTML = "";
-
-  if(tasks.length === 0){
-    list.innerHTML = "<p>No tasks available at the moment.</p>";
-    return;
+  if(!userSnap.exists()){
+    alert("Account not found");
+    return location.href="login.html";
   }
 
-  tasks.forEach(task=>{
-    const alreadySubmitted = submissions.some(
-      s => s.userId === user.id && s.taskId === task.id
-    );
+  userData = userSnap.data();
 
-    list.innerHTML += `
-      <div class="task-row">
-        <div>${task.title}</div>
-        <div>₦${task.reward}</div>
-        <button class="perform-btn"
-          ${alreadySubmitted ? "disabled" : ""}
-          onclick="location.href='task.html?id=${task.id}'">
-          ${alreadySubmitted ? "Pending" : "Perform"}
-        </button>
-      </div>
-    `;
+  // ✅ Only earners
+  if(userData.model !== "Earner"){
+    alert("Access denied");
+    return location.href="login.html";
+  }
+
+  // ✅ Must be activated
+  if(userData.status !== "active"){
+    alert("Your account is not activated yet");
+    return location.href="earner.html";
+  }
+
+  loadMySubmissions();
+});
+
+/* ================= LOAD SUBMISSIONS ================= */
+function loadMySubmissions(){
+  const q = query(
+    collection(db,"submissions"),
+    where("userId","==",currentUser.uid)
+  );
+
+  onSnapshot(q, snap=>{
+    completedTasks.clear();
+
+    snap.forEach(docSnap=>{
+      const s = docSnap.data();
+
+      // ❗ Only block if NOT rejected
+      if(s.status !== "rejected"){
+        completedTasks.add(s.taskId);
+      }
+    });
+
+    loadTasks();
   });
 }
 
-renderTasks();
+/* ================= LOAD TASKS ================= */
+function loadTasks(){
+  const q = query(
+    collection(db,"availabletasks"),
+    where("status","==","active")
+  );
+
+  onSnapshot(q, snap=>{
+    list.innerHTML = "";
+
+    if(snap.empty){
+      list.innerHTML = "<p>No tasks available at the moment.</p>";
+      return;
+    }
+
+    let shown = 0;
+
+    snap.forEach(docSnap=>{
+      const t = docSnap.data();
+      const id = docSnap.id;
+
+      // ❌ No remaining slots
+      if((t.remaining || 0) <= 0) return;
+
+      // ❌ Already done by this user
+      if(completedTasks.has(id)) return;
+
+      shown++;
+
+      const row = document.createElement("div");
+      row.className = "task-row";
+      row.innerHTML = `
+        <div>
+          <b>${t.platform}</b> - ${t.type}<br>
+          <small>${t.proofTitle}</small>
+        </div>
+        <div>₦${t.earnerPrice}</div>
+        <button class="perform-btn">Perform</button>
+      `;
+
+      row.querySelector("button").onclick = ()=>{
+        // ✅ Keep your redirect pattern
+        location.href = "task.html?id=" + id;
+      };
+
+      list.appendChild(row);
+    });
+
+    if(shown === 0){
+      list.innerHTML = "<p>No tasks available for you right now.</p>";
+    }
+  });
+}
 </script>
 
 </body>
