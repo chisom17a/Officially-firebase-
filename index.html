@@ -4,6 +4,16 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Chiearn Hub — Earn from social tasks</title>
+ /- REFERRAL AUTO REDIRECT SCRIPT (ADDED) -->
+  <script>
+    (function () {
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get("ref");
+      if (ref) {
+        window.location.replace("signup.html?ref=" + encodeURIComponent(ref));
+      }
+    })();
+  </script>
 
   <!-- Google font -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
