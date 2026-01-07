@@ -58,8 +58,21 @@
     </select>  
   
     <button type="submit">Sign Up</button>  
+    <a href="login.html">Already have an account</a>
+    <a href="index.html">learn more</a>
   </form>  
 </section>  
+
+<!-- ✅ ADD THIS -->
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const ref = params.get("ref");
+  if (ref) {
+    const refInput = document.getElementById("referral");
+    refInput.value = ref.toLowerCase();
+    refInput.readOnly = true;
+  }
+</script>
   
 <script type="module">  
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";  
@@ -81,7 +94,6 @@
   
   document.getElementById("signupForm").addEventListener("submit", async (e) => {  
     e.preventDefault();  
-    console.log("Signup started");  
   
     const username = document.getElementById("username").value.trim().toLowerCase();  
     const email = document.getElementById("email").value.trim().toLowerCase();  
@@ -98,26 +110,23 @@
   
     try {  
       const cred = await createUserWithEmailAndPassword(auth, email, password);  
-      console.log("Auth success:", cred.user.uid);  
   
       await setDoc(doc(db, "users", cred.user.uid), {  
         username: username,  
         email: email,  
         phone: phone,  
         model: model,  
-        referral: referral,  
+        referredBy: referral || null,   // ✅ PROPER FIELD NAME  
         balance: 0,  
-        status: "pending",          // ✅ Account activation status  
-        referralCount: 0,           // ✅ Referral count  
+        status: "pending",  
+        referralCount: 0,  
         createdAt: serverTimestamp()  
       });  
   
-      console.log("Firestore write success");  
-      alert("Registration successful!. Login to start amd enjoy");  
+      alert("Registration successful! Login to start.");  
       window.location.href = "login.html";  
   
     } catch (err) {  
-      console.error("Signup error:", err);  
       alert(err.message);  
     }  
   });  
