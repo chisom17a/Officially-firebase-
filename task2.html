@@ -52,7 +52,6 @@ header{background:#fff;padding:15px;font-weight:600}
   <div id="taskList">Loading...</div>
 </div>
 
-<!-- 🔥 FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
@@ -154,8 +153,11 @@ function loadTasks(){
       const t = docSnap.data();
       const id = docSnap.id;
 
+      const remaining = t.remaining ?? 0;
+      const price = t.earnerPrice ?? t.price ?? 0; // fallback to price if earnerPrice missing
+
       // ❌ No remaining slots
-      if((t.remaining || 0) <= 0) return;
+      if(remaining <= 0) return;
 
       // ❌ Already done by this user
       if(completedTasks.has(id)) return;
@@ -167,14 +169,13 @@ function loadTasks(){
       row.innerHTML = `
         <div>
           <b>${t.platform}</b> - ${t.type}<br>
-          <small>${t.proofTitle}</small>
+          <small>${t.proofTitle || ""}</small>
         </div>
-        <div>₦${t.earnerPrice}</div>
+        <div>₦${price}</div>
         <button class="perform-btn">Perform</button>
       `;
 
       row.querySelector("button").onclick = ()=>{
-        // ✅ Keep your redirect pattern
         location.href = "task.html?id=" + id;
       };
 
@@ -189,4 +190,4 @@ function loadTasks(){
 </script>
 
 </body>
-</html>
+  </html>
