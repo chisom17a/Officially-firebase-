@@ -127,9 +127,13 @@ button.danger{background:#dc2626}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, updateDoc, addDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import {
+  getFirestore, doc, getDoc, updateDoc,
+  collection, addDoc, serverTimestamp, onSnapshot
+} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
+/* 🔥 FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
   authDomain: "chiearnhub-5ba9e.firebaseapp.com",
@@ -144,48 +148,32 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 let currentUser;
-let userData;
+let userData = {};
 
-/* ===== AUTH CHECK ON PAGE LOAD ===== */
-(async () => {
-  const stored = localStorage.getItem("currentUser");
-  if (!stored) {
-    alert("Please login");
-    location.href = "login.html";
-    return;
-  }
+/* ===== AUTH ===== */
+onAuthStateChanged(auth, async (user) => {
+  if (!user) return location.href = "login.html";
 
-  currentUser = JSON.parse(stored);
+  currentUser = user;
 
-  const snap = await getDoc(doc(db, "users", currentUser.uid));
-  if (!snap.exists()) {
-    alert("User record not found");
-    location.href = "login.html";
-    return;
+  const snap = await getDoc(doc(db, "users", user.uid));
+  if (!snap.exists() || snap.data().model !== "Advertiser") {
+    alert("Unauthorized access");
+    return location.href = "login.html";
   }
 
   userData = snap.data();
 
-  if (userData.model !== "Advertiser") {
-    alert("Unauthorized access");
-    location.href = "login.html";
-    return;
-  }
-
-  onSnapshot(doc(db, "users", currentUser.uid), s => {
+  onSnapshot(doc(db,"users",user.uid), s=>{
     document.getElementById("balance").textContent =
       "₦" + (s.data().balance || 0).toLocaleString();
     userData.balance = s.data().balance || 0;
   });
-})();
+});
 
 /* ===== TASK TYPES ===== */
 const taskTypes = {
-  WhatsApp:[
-    {n:"Group Join",p:30},{n:"Channel Follow",p:25},
-    {n:"Contact Save",p:20},{n:"Channel React",p:15},
-    {n:"Status Posting",p:40}
-  ],
+  WhatsApp:[{n:"Group Join",p:30},{n:"Channel Follow",p:25},{n:"Contact Save",p:20},{n:"Channel React",p:15},{n:"Status Posting",p:40}],
   Telegram:[{n:"Group Join",p:25},{n:"Channel Follow",p:20}],
   Instagram:[{n:"Follow",p:30},{n:"Like",p:15},{n:"Comment",p:25}],
   Facebook:[{n:"Like Page",p:25},{n:"Follow",p:20}],
@@ -234,32 +222,32 @@ window.submitTask = async () => {
     return;
   }
 
-  if (userData.balance < total) {
+  if ((userData.balance || 0) < total) {
     alert("Insufficient balance");
-    location.href = "deposit.html";
-    return;
+    return location.href = "deposit.html";
   }
 
-  await updateDoc(doc(db,"users",currentUser.uid),{
+  const userRef = doc(db,"users",currentUser.uid);
+
+  await updateDoc(userRef,{
     balance: userData.balance - total
   });
 
-  // This is the part that creates the 'tasks' collection if it doesn't exist
-  // and adds a new document with the task details, including the userId.
   await addDoc(collection(db,"tasks"),{
-    userId: currentUser.uid, // User ID is included here
+    userId: currentUser.uid,
     platform: platform.value,
     type: type.value,
     link: link.value,
     proofTitle: proofTitle.value,
     quantity: qty,
+    remaining: qty,
     price: selectedPrice,
-    total,
-    status:"pending",
-    createdAt:new Date()
+    total: total,
+    status: "pending",
+    createdAt: serverTimestamp()
   });
 
-  alert("Task submitted for approval");
+  alert("✅ Task submitted for admin approval");
   location.href="advertiser.html";
 };
 </script>
