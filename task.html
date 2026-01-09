@@ -15,7 +15,6 @@ button[disabled]{opacity:.6}
 </head>
 
 <body>
-
 <div class="box">
   <h2 id="title">Loading...</h2>
   <p><b>Reward:</b> ₦<span id="earnerPrice"></span></p>
@@ -51,99 +50,74 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-/* ================= GET TASK ID ================= */
 const params = new URLSearchParams(location.search);
 const taskId = params.get("id");
 
-if(!taskId){
-  alert("No task selected");
-  location.href="tasks.html";
-}
+if(!taskId){ alert("No task selected"); location.href="tasks.html"; }
 
-/* ================= AUTH ================= */
 let currentUser = null;
-
-onAuthStateChanged(auth, async (user) => {
-  if(!user){
-    location.href="login.html";
-    return;
-  }
-  currentUser = user;
-  loadTask();
-});
-
-/* ================= LOAD TASK ================= */
 let taskData = null;
 
+onAuthStateChanged(auth, async (user)=>{
+  if(!user){ location.href="login.html"; return; }
+  currentUser = user;
+  await loadTask();
+});
+
 async function loadTask(){
-  const taskRef = doc(db, "availabletasks", taskId); // ✅ FIXED
+  const taskRef = doc(db, "availabletasks", taskId);
   const snap = await getDoc(taskRef);
-
-  if(!snap.exists()){
-    alert("Task not found");
-    location.href="tasks.html";
-    return;
-  }
-
+  if(!snap.exists()){ alert("Task not found"); location.href="tasks.html"; return; }
   taskData = snap.data();
-
   document.getElementById("title").innerText = taskData.platform + " - " + taskData.type;
   document.getElementById("earnerPrice").innerText = taskData.earnerPrice;
   document.getElementById("proof").innerText = taskData.proofTitle;
   document.getElementById("visit").href = taskData.link;
 }
 
-/* ================= IMGBB ================= */
 async function uploadToImgBB(file){
   const formData = new FormData();
   formData.append("image", file);
-
-  const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMG_BB_KEY}`, {
-    method: "POST",
-    body: formData
-  });
-
+  const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMG_BB_KEY}`, { method: "POST", body: formData });
   const data = await res.json();
   if(!data.success) throw "Image upload failed";
-
   return data.data.url;
 }
 
-/* ================= SUBMIT ================= */
 document.getElementById("submitBtn").addEventListener("click", submitTask);
 
 async function submitTask(){
   const text = document.getElementById("textProof").value.trim();
   const file = document.getElementById("imageProof").files[0];
-
   if(!text) return alert("Text proof required");
   if(!file) return alert("Image proof required");
 
-  submitBtn.style.display = "none";
-  loader.style.display = "block";
+  submitBtn.style.display = "none"; loader.style.display = "block";
 
   try{
     const taskRef = doc(db, "availabletasks", taskId);
     const snap = await getDoc(taskRef);
     const data = snap.data();
-
-    if((data.remaining || 0) <= 0){
-      throw "Task is already filled";
-    }
+    if((data.remaining || 0) <= 0){ throw "Task is full"; }
 
     const imageUrl = await uploadToImgBB(file);
 
+    // ✅ SAVE SUBMISSION including posterId
     await setDoc(doc(db, "submissions", crypto.randomUUID()), {
       taskId,
+      posterId: data.posterId,
       userId: currentUser.uid,
       proofText: text,
       proofImage: imageUrl,
+      reward: data.earnerPrice,
       status: "pending",
       createdAt: serverTimestamp()
     });
 
+    // ✅ REDUCE REMAINING
     await updateDoc(taskRef, { remaining: increment(-1) });
 
+    // ✅ MARK COMPLETED
     await setDoc(doc(db, "users", currentUser.uid, "completedTasks", taskId), {
       taskId,
       completedAt: serverTimestamp()
@@ -153,12 +127,12 @@ async function submitTask(){
     location.href = "tasks.html";
 
   }catch(err){
-    alert(err);
+    console.error(err);
+    alert("❌ " + err);
     submitBtn.style.display = "block";
     loader.style.display = "none";
   }
 }
 </script>
-
 </body>
 </html>
