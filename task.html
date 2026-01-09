@@ -2,97 +2,195 @@
 <html>
 <head>
 <title>Perform Task</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
 <style>
 body{font-family:Inter;background:#f4f7fa;padding:20px}
 .box{background:#fff;max-width:500px;margin:auto;padding:20px;border-radius:10px}
 input,textarea,button{width:100%;margin:10px 0;padding:10px}
-button{background:#0d6efd;color:#fff;border:none;border-radius:6px}
+button{background:#0d6efd;color:#fff;border:none;border-radius:6px;cursor:pointer}
+button[disabled]{opacity:.6}
+.loader{
+  display:none;
+  text-align:center;
+  padding:10px;
+  font-weight:bold;
+}
 </style>
 </head>
 
 <body>
 
 <div class="box">
-  <h2 id="title"></h2>
+  <h2 id="title">Loading...</h2>
   <p><b>Reward:</b> ₦<span id="price"></span></p>
   <p><b>Proof Required:</b> <span id="proof"></span></p>
 
   <a id="visit" target="_blank">
-    <button>Visit Task</button>
-    <button type="button" class="btn secondary" onclick="location.href='earner.html'">BACK TO HOME</button>
-
+    <button type="button">Visit Task</button>
   </a>
 
   <textarea id="textProof" placeholder="Text proof (required)"></textarea>
   <input type="file" id="imageProof" accept="image/*">
 
-  <button onclick="submitTask()">Submit Task</button>
+  <button id="submitBtn">Submit Task</button>
+  <div class="loader" id="loader">⏳ Submitting... Please wait</div>
 </div>
 
-<script>
-/* ===== AUTH ===== */
-const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-const users = JSON.parse(localStorage.getItem("users")) || [];
+<script type="module">
+/* ================= FIREBASE ================= */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import { 
+  getFirestore, doc, getDoc, updateDoc, setDoc, serverTimestamp, increment 
+} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
-if(!currentUser) location.href="login.html";
+const firebaseConfig = {
+  apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
+  authDomain: "chiearnhub-5ba9e.firebaseapp.com",
+  projectId: "chiearnhub-5ba9e",
+  messagingSenderId: "332513744974",
+  appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
+};
 
-const user = users.find(
-  u => u.email === currentUser.email && u.model === "Earner"
-);
-if(!user) location.href="login.html";
+// 🔥 YOUR IMGBB API KEY
+const IMG_BB_KEY = "fb44bf17871e5949e02fe80b4f56fa47";
 
-/* ===== GET TASK ===== */
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+/* ================= GET TASK ID ================= */
 const params = new URLSearchParams(location.search);
 const taskId = params.get("id");
 
-const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
-const task = tasks.find(t => t.id === taskId);
-
-if(!task){
-  alert("Task not found");
+if(!taskId){
+  alert("No task selected");
   location.href="tasks.html";
 }
 
-/* ===== RENDER ===== */
-document.getElementById("title").innerText = task.title;
-document.getElementById("price").innerText = task.reward;
-document.getElementById("proof").innerText = task.proofTitle;
-document.getElementById("visit").href = task.link;
+/* ================= AUTH ================= */
+let currentUser = null;
 
-/* ===== SUBMIT ===== */
-function submitTask(){
+onAuthStateChanged(auth, async (user) => {
+  if(!user){
+    location.href="login.html";
+    return;
+  }
+  currentUser = user;
+  loadTask();
+});
+
+/* ================= LOAD TASK ================= */
+let taskData = null;
+
+async function loadTask(){
+  const taskRef = doc(db, "tasks", taskId);
+  const snap = await getDoc(taskRef);
+
+  if(!snap.exists()){
+    alert("Task not found");
+    location.href="tasks.html";
+    return;
+  }
+
+  taskData = snap.data();
+
+  document.getElementById("title").innerText = taskData.title;
+  document.getElementById("price").innerText = taskData.reward;
+  document.getElementById("proof").innerText = taskData.proofTitle;
+  document.getElementById("visit").href = taskData.link;
+}
+
+/* ================= IMGBB UPLOAD ================= */
+async function uploadToImgBB(file){
+  const formData = new FormData();
+  formData.append("image", file);
+
+  const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMG_BB_KEY}`, {
+    method: "POST",
+    body: formData
+  });
+
+  const data = await res.json();
+
+  if(!data.success) throw "Image upload failed";
+
+  return data.data.url;
+}
+
+/* ================= SUBMIT ================= */
+document.getElementById("submitBtn").addEventListener("click", submitTask);
+
+async function submitTask(){
   const text = document.getElementById("textProof").value.trim();
+  const file = document.getElementById("imageProof").files[0];
+
   if(!text){
     alert("Text proof required");
     return;
   }
 
-  const file = document.getElementById("imageProof").files[0];
-  const reader = new FileReader();
+  if(!file){
+    alert("Image proof is required");
+    return;
+  }
 
-  reader.onload = ()=>{
-    const submissions = JSON.parse(localStorage.getItem("taskSubmissions")) || [];
+  // UI
+  document.getElementById("submitBtn").style.display = "none";
+  document.getElementById("loader").style.display = "block";
 
-    submissions.push({
-      id: crypto.randomUUID(),
-      taskId: task.id,
-      taskTitle: task.title,
-      reward: task.reward,
-      userId: user.id,
-      userEmail: user.email,
+  try{
+    const taskRef = doc(db, "tasks", taskId);
+    const snap = await getDoc(taskRef);
+
+    if(!snap.exists()) throw "Task not found";
+
+    const data = snap.data();
+
+    if((data.remaining || 0) <= 0){
+      throw "❌ This task is already completed by enough users";
+    }
+
+    /* ===== UPLOAD IMAGE ===== */
+    const imageUrl = await uploadToImgBB(file);
+
+    /* ===== SAVE SUBMISSION ===== */
+    const submissionId = crypto.randomUUID();
+
+    await setDoc(doc(db, "submissions", submissionId), {
+      taskId: taskId,
+      taskTitle: data.title,
+      reward: data.reward,
+      userId: currentUser.uid,
+      userEmail: currentUser.email,
       textProof: text,
-      imageProof: file ? reader.result : "",
+      imageProof: imageUrl,
       status: "pending",
-      date: new Date().toISOString()
+      createdAt: serverTimestamp()
     });
 
-    localStorage.setItem("taskSubmissions", JSON.stringify(submissions));
-    alert("Task submitted for review");
-    location.href="tasks.html";
-  };
+    /* ===== REDUCE SLOT ===== */
+    await updateDoc(taskRef, {
+      remaining: increment(-1)
+    });
 
-  if(file) reader.readAsDataURL(file);
-  else reader.onload();
+    /* ===== MARK COMPLETED ===== */
+    await setDoc(doc(db, "users", currentUser.uid, "completedTasks", taskId), {
+      taskId: taskId,
+      completedAt: serverTimestamp()
+    });
+
+    alert("✅ Task submitted successfully!");
+    location.href = "tasks.html";
+
+  }catch(err){
+    console.error(err);
+    alert("❌ " + err);
+
+    document.getElementById("submitBtn").style.display = "block";
+    document.getElementById("loader").style.display = "none";
+  }
 }
 </script>
 
