@@ -10,12 +10,7 @@ body{font-family:Inter;background:#f4f7fa;padding:20px}
 input,textarea,button{width:100%;margin:10px 0;padding:10px}
 button{background:#0d6efd;color:#fff;border:none;border-radius:6px;cursor:pointer}
 button[disabled]{opacity:.6}
-.loader{
-  display:none;
-  text-align:center;
-  padding:10px;
-  font-weight:bold;
-}
+.loader{display:none;text-align:center;padding:10px;font-weight:bold}
 </style>
 </head>
 
@@ -38,12 +33,9 @@ button[disabled]{opacity:.6}
 </div>
 
 <script type="module">
-/* ================= FIREBASE ================= */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-import { 
-  getFirestore, doc, getDoc, updateDoc, setDoc, serverTimestamp, increment 
-} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, updateDoc, setDoc, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
@@ -53,7 +45,6 @@ const firebaseConfig = {
   appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
 };
 
-// 🔥 YOUR IMGBB API KEY
 const IMG_BB_KEY = "fb44bf17871e5949e02fe80b4f56fa47";
 
 const app = initializeApp(firebaseConfig);
@@ -85,7 +76,7 @@ onAuthStateChanged(auth, async (user) => {
 let taskData = null;
 
 async function loadTask(){
-  const taskRef = doc(db, "availabletask", taskId);
+  const taskRef = doc(db, "availabletasks", taskId); // ✅ FIXED
   const snap = await getDoc(taskRef);
 
   if(!snap.exists()){
@@ -96,13 +87,13 @@ async function loadTask(){
 
   taskData = snap.data();
 
-  document.getElementById("title").innerText = taskData.title;
-  document.getElementById("earnerPrice").innerText = taskData.reward;
+  document.getElementById("title").innerText = taskData.platform + " - " + taskData.type;
+  document.getElementById("earnerPrice").innerText = taskData.earnerPrice;
   document.getElementById("proof").innerText = taskData.proofTitle;
   document.getElementById("visit").href = taskData.link;
 }
 
-/* ================= IMGBB UPLOAD ================= */
+/* ================= IMGBB ================= */
 async function uploadToImgBB(file){
   const formData = new FormData();
   formData.append("image", file);
@@ -113,7 +104,6 @@ async function uploadToImgBB(file){
   });
 
   const data = await res.json();
-
   if(!data.success) throw "Image upload failed";
 
   return data.data.url;
@@ -126,70 +116,46 @@ async function submitTask(){
   const text = document.getElementById("textProof").value.trim();
   const file = document.getElementById("imageProof").files[0];
 
-  if(!text){
-    alert("Text proof required");
-    return;
-  }
+  if(!text) return alert("Text proof required");
+  if(!file) return alert("Image proof required");
 
-  if(!file){
-    alert("Image proof is required");
-    return;
-  }
-
-  // UI
-  document.getElementById("submitBtn").style.display = "none";
-  document.getElementById("loader").style.display = "block";
+  submitBtn.style.display = "none";
+  loader.style.display = "block";
 
   try{
-    const taskRef = doc(db, "availabletask", taskId);
+    const taskRef = doc(db, "availabletasks", taskId);
     const snap = await getDoc(taskRef);
-
-    if(!snap.exists()) throw "Task not found";
-
     const data = snap.data();
 
     if((data.remaining || 0) <= 0){
-      throw "❌ This task is not available or has been paused by the owner";
+      throw "Task is already filled";
     }
 
-    /* ===== UPLOAD IMAGE ===== */
     const imageUrl = await uploadToImgBB(file);
 
-    /* ===== SAVE SUBMISSION ===== */
-    const submissionId = crypto.randomUUID();
-
-    await setDoc(doc(db, "submissions", submissionId), {
-      taskId: taskId,
-      taskTitle: data.title,
-      reward: data.reward,
+    await setDoc(doc(db, "submissions", crypto.randomUUID()), {
+      taskId,
       userId: currentUser.uid,
-      userEmail: currentUser.email,
-      textProof: text,
-      imageProof: imageUrl,
+      proofText: text,
+      proofImage: imageUrl,
       status: "pending",
       createdAt: serverTimestamp()
     });
 
-    /* ===== REDUCE SLOT ===== */
-    await updateDoc(taskRef, {
-      remaining: increment(-1)
-    });
+    await updateDoc(taskRef, { remaining: increment(-1) });
 
-    /* ===== MARK COMPLETED ===== */
     await setDoc(doc(db, "users", currentUser.uid, "completedTasks", taskId), {
-      taskId: taskId,
+      taskId,
       completedAt: serverTimestamp()
     });
 
-    alert("✅ Task submitted successfully!");
+    alert("✅ Task submitted!");
     location.href = "tasks.html";
 
   }catch(err){
-    console.error(err);
-    alert("❌ " + err);
-
-    document.getElementById("submitBtn").style.display = "block";
-    document.getElementById("loader").style.display = "none";
+    alert(err);
+    submitBtn.style.display = "block";
+    loader.style.display = "none";
   }
 }
 </script>
