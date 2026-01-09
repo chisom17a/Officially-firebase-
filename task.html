@@ -23,7 +23,7 @@ button[disabled]{opacity:.6}
 
 <div class="box">
   <h2 id="title">Loading...</h2>
-  <p><b>Reward:</b> ₦<span id="price"></span></p>
+  <p><b>Reward:</b> ₦<span id="earnerPrice"></span></p>
   <p><b>Proof Required:</b> <span id="proof"></span></p>
 
   <a id="visit" target="_blank">
@@ -85,7 +85,7 @@ onAuthStateChanged(auth, async (user) => {
 let taskData = null;
 
 async function loadTask(){
-  const taskRef = doc(db, "tasks", taskId);
+  const taskRef = doc(db, "availabletask", taskId);
   const snap = await getDoc(taskRef);
 
   if(!snap.exists()){
@@ -97,7 +97,7 @@ async function loadTask(){
   taskData = snap.data();
 
   document.getElementById("title").innerText = taskData.title;
-  document.getElementById("price").innerText = taskData.reward;
+  document.getElementById("earnerPrice").innerText = taskData.reward;
   document.getElementById("proof").innerText = taskData.proofTitle;
   document.getElementById("visit").href = taskData.link;
 }
@@ -141,7 +141,7 @@ async function submitTask(){
   document.getElementById("loader").style.display = "block";
 
   try{
-    const taskRef = doc(db, "tasks", taskId);
+    const taskRef = doc(db, "availabletask", taskId);
     const snap = await getDoc(taskRef);
 
     if(!snap.exists()) throw "Task not found";
@@ -149,7 +149,7 @@ async function submitTask(){
     const data = snap.data();
 
     if((data.remaining || 0) <= 0){
-      throw "❌ This task is already completed by enough users";
+      throw "❌ This task is not available or has been paused by the owner";
     }
 
     /* ===== UPLOAD IMAGE ===== */
