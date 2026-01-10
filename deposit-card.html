@@ -1,13 +1,78 @@
 <!DOCTYPE html>
-
 <html>
 <head>
-  <meta http-equiv="CONTENT-TYPE" content="text/html; charset=UTF-8">
-  <title>Hello, World!</title>
+  <title>Fund Wallet</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body{font-family:Inter;background:#f4f7fa;padding:20px}
+    .box{background:#fff;max-width:400px;margin:auto;padding:20px;border-radius:10px}
+    input,button{width:100%;padding:12px;margin:10px 0}
+    button{background:#0d6efd;color:#fff;border:none;border-radius:6px;font-size:16px}
+  </style>
 </head>
 <body>
-  <h1>
-    Hello, World!
-  </h1>
+
+<div class="box">
+  <h2>💰 Fund Wallet</h2>
+  <input type="number" id="amount" placeholder="Enter amount (₦)" />
+  <button onclick="startDeposit()">Proceed to Pay</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
+  authDomain: "chiearnhub-5ba9e.firebaseapp.com",
+  projectId: "chiearnhub-5ba9e",
+  messagingSenderId: "332513744974",
+  appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+let currentUser = null;
+
+onAuthStateChanged(auth, (user)=>{
+  if(!user){
+    location.href = "login.html";
+    return;
+  }
+  currentUser = user;
+});
+
+window.startDeposit = async function(){
+  const amount = Number(document.getElementById("amount").value);
+
+  if(!amount || amount < 100){
+    alert("Minimum deposit is ₦100");
+    return;
+  }
+
+  // Call your backend to create Squadco payment
+  const res = await fetch("https://YOUR-BACKEND-URL/create-deposit", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      amount: amount,
+      uid: currentUser.uid,
+      email: currentUser.email
+    })
+  });
+
+  const data = await res.json();
+
+  if(!data.checkout_url){
+    alert("Failed to start payment");
+    return;
+  }
+
+  // Redirect to Squadco
+  window.location.href = data.checkout_url;
+}
+</script>
+
 </body>
 </html>
