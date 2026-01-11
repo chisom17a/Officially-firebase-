@@ -34,7 +34,9 @@ button[disabled]{opacity:.6}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, updateDoc, setDoc, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+import { 
+  getFirestore, doc, getDoc, updateDoc, setDoc, serverTimestamp, increment 
+} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
@@ -57,10 +59,20 @@ if(!taskId){ alert("No task selected"); location.href="tasks.html"; }
 
 let currentUser = null;
 let taskData = null;
+let userData = null;
 
 onAuthStateChanged(auth, async (user)=>{
   if(!user){ location.href="login.html"; return; }
   currentUser = user;
+
+  // Load user data
+  const userSnap = await getDoc(doc(db,"users",user.uid));
+  if(!userSnap.exists()){
+    alert("User profile not found");
+    return;
+  }
+  userData = userSnap.data();
+
   await loadTask();
 });
 
@@ -92,29 +104,57 @@ async function submitTask(){
   if(!text) return alert("Text proof required");
   if(!file) return alert("Image proof required");
 
-  submitBtn.style.display = "none"; loader.style.display = "block";
+  submitBtn.style.display = "none";
+  loader.style.display = "block";
 
   try{
     const taskRef = doc(db, "availabletasks", taskId);
     const snap = await getDoc(taskRef);
     const data = snap.data();
-    if((data.remaining || 0) <= 0){ throw "Task is full"; }
+
+    if((data.remaining || 0) <= 0){
+      throw "Task is full";
+    }
 
     const imageUrl = await uploadToImgBB(file);
 
-    // ✅ SAVE SUBMISSION including posterId
-    await setDoc(doc(db, "submissions", crypto.randomUUID()), {
+    const submissionId = crypto.randomUUID();
+
+    const submissionPayload = {
+      submissionId,
       taskId,
-      posterId: data.posterId,
+
+      // 🔹 USER INFO
       userId: currentUser.uid,
+      userEmail: currentUser.email,
+      username: userData.username || "",
+
+      // 🔹 POSTER
+      posterId: data.posterId,
+
+      // 🔹 TASK INFO
+      platform: data.platform,
+      type: data.type,
+      reward: data.earnerPrice,
+      proofTitle: data.proofTitle,
+      link: data.link,
+
+      // 🔹 PROOF
       proofText: text,
       proofImage: imageUrl,
-      reward: data.earnerPrice,
+
+      // 🔹 STATUS
       status: "pending",
       createdAt: serverTimestamp()
-    });
+    };
 
-    // ✅ REDUCE REMAINING
+    // ✅ SAVE FOR USER HISTORY
+    await setDoc(doc(db, "submissions", submissionId), submissionPayload);
+
+    // ✅ SAVE FOR ADMIN QUEUE
+    await setDoc(doc(db, "adminTaskQueue", submissionId), submissionPayload);
+
+    // ✅ REDUCE SLOT
     await updateDoc(taskRef, { remaining: increment(-1) });
 
     // ✅ MARK COMPLETED
@@ -123,7 +163,7 @@ async function submitTask(){
       completedAt: serverTimestamp()
     });
 
-    alert("✅ Task submitted!");
+    alert("✅ Task submitted successfully!");
     location.href = "tasks.html";
 
   }catch(err){
