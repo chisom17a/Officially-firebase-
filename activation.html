@@ -1,187 +1,163 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Account Activation - Chiearn Hub</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Account Activation - Chiearn Hub</title>
 
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: "Poppins", sans-serif;
-    }
+<script src="https://js.paystack.co/v1/inline.js"></script>
 
-    body {
-      background: #f3f6fb;
-      padding: 20px;
-    }
-
-    .container {
-      max-width: 480px;
-      margin: auto;
-      background: #fff;
-      padding: 25px;
-      border-radius: 14px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
-      animation: slideDown 0.5s ease;
-    }
-
-    @keyframes slideDown {
-      from { transform: translateY(-20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-
-    h2 {
-      text-align: center;
-      margin-bottom: 12px;
-      color: #1e293b;
-    }
-
-    label {
-      font-weight: 600;
-      margin: 6px 0;
-      display: block;
-    }
-
-    input, button {
-      width: 100%;
-      padding: 12px;
-      margin: 8px 0 15px;
-      border: 1px solid #ccc;
-      border-radius: 10px;
-      font-size: 15px;
-    }
-
-    button {
-      cursor: pointer;
-      border: none;
-      color: white;
-      transition: 0.3s;
-    }
-
-    .send-btn { background: #2563eb; }
-    .send-btn:hover { background: #1e40af; }
-
-    .cancel-btn { background: #ef4444; }
-    .cancel-btn:hover { background: #b91c1c; }
-
-    .success-box {
-      display: none;
-      text-align: center;
-      background: #e0ffe4;
-      padding: 15px;
-      border-radius: 10px;
-      margin-top: 20px;
-      border: 1px solid #4ade80;
-      color: #166534;
-      font-weight: bold;
-    }
-  </style>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Poppins,sans-serif}
+body{background:#f3f6fb;padding:20px}
+.container{max-width:480px;margin:auto;background:#fff;padding:25px;border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.08)}
+h2{text-align:center;margin-bottom:12px}
+input,button{width:100%;padding:12px;margin:8px 0 15px;border-radius:10px;border:1px solid #ccc}
+button{border:none;color:#fff;font-size:16px;cursor:pointer}
+.send-btn{background:#2563eb}
+.cancel-btn{background:#ef4444}
+.success-box{display:none;text-align:center;background:#e0ffe4;padding:15px;border-radius:10px;margin-top:20px;border:1px solid #4ade80;color:#166534;font-weight:bold}
+</style>
 </head>
 <body>
 
 <div class="container">
-  <h2>Activate Your Account</h2>
+<h2>Activate Your Account</h2>
 
-  <p>Deposit <strong>₦200</strong> to the account below and upload your proof:</p>
+<p>Deposit <b>₦700</b> to:</p>
+<p>
+<b>Account Number:</b> 9162141283<br>
+<b>Bank:</b> Opay<br>
+<b>Account Name:</b> Chisom Nnonyelu Favour
+</p>
 
-  <p>
-    <b>Account Number:</b> 9162141283 <br>
-    <b>Bank:</b> Opay <br>
-    <b>Account Name:</b> Chisom Nnonyelu Favour
-  </p>
+<input id="senderName" placeholder="Sender name (required)">
+<input type="file" id="proofImage" accept="image/*">
 
-  <label>Sender Name (Required)</label>
-  <input type="text" id="senderName" placeholder="Enter the name on the payment">
+<button class="send-btn" id="sendBtn">I've Paid</button>
+<button class="cancel-btn" onclick="location.href='earner.html'">Cancel</button>
 
-  <label>Upload Proof (Optional)</label>
-  <input type="file" id="proofImage" accept="image/*">
-
-  <button class="send-btn" id="sendBtn">I've Sent It</button>
-  <button class="cancel-btn" onclick="window.location.href='earner.html'">
-    Cancel Payment
-  </button>
-
-  <div class="success-box" id="successBox">
-    Account under review 🙏 <br> Redirecting...
-  </div>
+<div class="success-box" id="successBox">
+✅ Submitted! Under review... Redirecting...
+</div>
 </div>
 
-<script>
-/* ---------- AUTH CHECK ---------- */
-const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-if (!currentUser) {
-  window.location.href = "login.html";
-}
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, addDoc, collection, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
-/* ---------- HELPERS ---------- */
-function getUsers() {
-  return JSON.parse(localStorage.getItem("users")) || [];
-}
+const firebaseConfig = {
+  apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
+  authDomain: "chiearnhub-5ba9e.firebaseapp.com",
+  projectId: "chiearnhub-5ba9e"
+};
 
-function saveUsers(users) {
-  localStorage.setItem("users", JSON.stringify(users));
-}
+const IMG_BB_KEY = "fb44bf17871e5949e02fe80b4f56fa47";
 
-/* ---------- SUBMIT ACTIVATION ---------- */
-document.getElementById("sendBtn").addEventListener("click", async () => {
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-  const senderName = document.getElementById("senderName").value.trim();
-  const file = document.getElementById("proofImage").files[0];
+let currentUser = null;
 
-  if (!senderName) {
-    alert("Please enter the sender name.");
+/* ================= AUTH CHECK ================= */
+onAuthStateChanged(auth, async (user)=>{
+  if(!user){
+    location.href="login.html";
     return;
   }
 
-  // Convert image to Base64
-  let base64Image = "";
-  if (file) {
-    base64Image = await convertToBase64(file);
+  currentUser = user;
+
+  const userRef = doc(db,"users",user.uid);
+  const snap = await getDoc(userRef);
+
+  if(!snap.exists()){
+    alert("User record missing");
+    return;
   }
 
-  /* ---------- SAVE ACTIVATION REQUEST ---------- */
-  let requests = JSON.parse(localStorage.getItem("activationRequests")) || [];
+  const userData = snap.data();
 
-  const request = {
-    email: currentUser.email,
-    senderName,
-    image: base64Image,
-    status: "pending",
-    timestamp: new Date().toLocaleString()
-  };
-
-  requests.push(request);
-  localStorage.setItem("activationRequests", JSON.stringify(requests));
-
-  /* ---------- MARK USER AS PENDING ---------- */
-  const users = getUsers();
-  const index = users.findIndex(u => u.email === currentUser.email);
-
-  if (index !== -1) {
-    users[index].activationStatus = "pending";
-    users[index].activated = false;
-    saveUsers(users);
+  // Only earners
+  if(userData.model !== "Earner"){
+    alert("Only earners can access this page");
+    location.href="index.html";
+    return;
   }
 
-  /* ---------- UI FEEDBACK ---------- */
-  document.getElementById("successBox").style.display = "block";
+  // If already activated → redirect
+  if(userData.activated === true){
+    location.href = "task2.html";
+    return;
+  }
 
-  setTimeout(() => {
-    window.location.href = "dashboard.html";
-  }, 4000);
+  // If pending → block resubmission
+  if(userData.activationStatus === "pending"){
+    alert("Your activation is already under review");
+    location.href="earner.html";
+    return;
+  }
 });
 
-/* ---------- BASE64 ---------- */
-function convertToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = error => reject(error);
+/* ================= IMGBB UPLOAD ================= */
+async function uploadToImgBB(file){
+  const formData = new FormData();
+  formData.append("image", file);
+
+  const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMG_BB_KEY}`, {
+    method: "POST",
+    body: formData
   });
+
+  const data = await res.json();
+  if(!data.success) throw "Image upload failed";
+
+  return data.data.url;
+}
+
+/* ================= SUBMIT ================= */
+document.getElementById("sendBtn").addEventListener("click", submitActivation);
+
+async function submitActivation(){
+  const senderName = document.getElementById("senderName").value.trim();
+  const file = document.getElementById("proofImage").files[0];
+
+  if(!senderName) return alert("Sender name required");
+  if(!file) return alert("Upload payment proof");
+
+  try{
+    document.getElementById("sendBtn").disabled = true;
+
+    const imageUrl = await uploadToImgBB(file);
+
+    // Save activation request
+    await addDoc(collection(db,"activationRequests"), {
+      uid: currentUser.uid,
+      email: currentUser.email,
+      senderName,
+      proofImage: imageUrl,
+      status: "pending",
+      createdAt: serverTimestamp()
+    });
+
+    // Update user status
+    await updateDoc(doc(db,"users",currentUser.uid), {
+      activationStatus: "pending",
+      activated: false
+    });
+
+    document.getElementById("successBox").style.display = "block";
+
+    setTimeout(()=>{
+      location.href="earner.html";
+    }, 3000);
+
+  }catch(err){
+    alert(err);
+    document.getElementById("sendBtn").disabled = false;
+  }
 }
 </script>
 
