@@ -1,155 +1,139 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin – Activation Requests</title>
+  <title>Admin - Activation Requests</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<style>
-  body {
-    font-family: Poppins, sans-serif;
-    background: #f1f5f9;
-    padding: 20px;
-  }
-
-  h1 {
-    text-align: center;
-    margin-bottom: 20px;
-  }
-
-  .request {
-    background: white;
-    border-radius: 14px;
-    padding: 18px;
-    margin-bottom: 18px;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-  }
-
-  .request img {
-    width: 100%;
-    max-height: 300px;
-    object-fit: contain;
-    border-radius: 10px;
-    margin-top: 10px;
-  }
-
-  .actions {
-    display: flex;
-    gap: 12px;
-    margin-top: 15px;
-  }
-
-  button {
-    flex: 1;
-    padding: 12px;
-    border: none;
-    border-radius: 10px;
-    font-weight: bold;
-    cursor: pointer;
-  }
-
-  .approve {
-    background: #22c55e;
-    color: white;
-  }
-
-  .reject {
-    background: #ef4444;
-    color: white;
-  }
-
-  .empty {
-    text-align: center;
-    color: #64748b;
-    margin-top: 50px;
-  }
-</style>
+  <style>
+    body{font-family:Inter;background:#f4f7fa;padding:20px}
+    .card{background:#fff;padding:15px;border-radius:10px;margin-bottom:15px}
+    img{max-width:100%;border-radius:8px}
+    button{padding:10px 14px;border:none;border-radius:6px;color:#fff;cursor:pointer;margin-right:6px}
+    .approve{background:#16a34a}
+    .reject{background:#dc2626}
+    .pending{color:#f59e0b;font-weight:bold}
+  </style>
 </head>
-
 <body>
 
-<h1>Activation Requests</h1>
+<h2>🛂 Activation Requests</h2>
+<div id="list">Loading...</div>
 
-<div id="requestsContainer"></div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import { 
+  getFirestore, collection, query, where, getDocs, doc, updateDoc, serverTimestamp, getDoc 
+} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
-<script>
-/* ---------------- AUTH CHECK ---------------- */
-const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-const users = JSON.parse(localStorage.getItem("users")) || [];
+/* ================= FIREBASE ================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
+  authDomain: "chiearnhub-5ba9e.firebaseapp.com",
+  projectId: "chiearnhub-5ba9e",
+  appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
+};
 
-if (!currentUser) {
-  alert("Not logged in");
-  window.location.href = "login.html";
-}
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-const admin = users.find(u => u.email === currentUser.email);
-
-if (!admin || admin.model !== "Admin") {
-  alert("Unauthorized access");
-  window.location.href = "login.html";
-}
-
-/* ---------------- LOAD REQUESTS ---------------- */
-let requests = JSON.parse(localStorage.getItem("activationRequests")) || [];
-const container = document.getElementById("requestsContainer");
-
-if (requests.length === 0) {
-  container.innerHTML = `<div class="empty">No activation requests</div>`;
-}
-
-/* ---------------- RENDER ---------------- */
-requests.forEach((req, index) => {
-  const div = document.createElement("div");
-  div.className = "request";
-
-  div.innerHTML = `
-    <p><b>Email:</b> ${req.email}</p>
-    <p><b>Sender Name:</b> ${req.senderName}</p>
-    <p><b>Time:</b> ${req.timestamp}</p>
-
-    ${req.image ? `<img src="${req.image}">` : `<p>No proof uploaded</p>`}
-
-    <div class="actions">
-      <button class="approve" onclick="approve(${index})">Approve</button>
-      <button class="reject" onclick="reject(${index})">Reject</button>
-    </div>
-  `;
-
-  container.appendChild(div);
-});
-
-/* ---------------- ACTIONS ---------------- */
-function approve(index) {
-  processRequest(index, true);
-}
-
-function reject(index) {
-  processRequest(index, false);
-}
-
-function processRequest(index, isApproved) {
-  const req = requests[index];
-  let users = JSON.parse(localStorage.getItem("users")) || [];
-
-  const user = users.find(u => u.email === req.email);
-
-  if (!user) {
-    alert("User not found");
+/* ================= AUTH CHECK ================= */
+onAuthStateChanged(auth, async (user)=>{
+  if(!user){
+    location.href = "login.html";
     return;
   }
 
-  user.activated = isApproved;
-  user.activationStatus = isApproved ? "approved" : "rejected";
+  const snap = await getDoc(doc(db,"users",user.uid));
 
-  // Save users
-  localStorage.setItem("users", JSON.stringify(users));
+  if(!snap.exists() || snap.data().model !== "Admin"){
+    alert("Access denied");
+    location.href = "index.html";
+    return;
+  }
 
-  // Remove request
-  requests.splice(index, 1);
-  localStorage.setItem("activationRequests", JSON.stringify(requests));
+  loadRequests();
+});
 
-  alert(isApproved ? "Account activated" : "Activation rejected");
-  location.reload();
+/* ================= LOAD REQUESTS ================= */
+async function loadRequests(){
+  const q = query(
+    collection(db,"activationRequests"),
+    where("status","==","pending")
+  );
+
+  const snap = await getDocs(q);
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+
+  if(snap.empty){
+    list.innerHTML = "No pending requests.";
+    return;
+  }
+
+  snap.forEach(docSnap=>{
+    const r = docSnap.data();
+
+    const div = document.createElement("div");
+    div.className = "card";
+
+    div.innerHTML = `
+      <p><b>Email:</b> ${r.email}</p>
+      <p><b>Sender:</b> ${r.senderName}</p>
+      <p class="pending">Status: PENDING</p>
+      <img src="${r.proofImage}" />
+
+      <br><br>
+      <button class="approve">Approve</button>
+      <button class="reject">Reject</button>
+    `;
+
+    div.querySelector(".approve").onclick = () => approve(docSnap.id, r.uid);
+    div.querySelector(".reject").onclick = () => rejectReq(docSnap.id, r.uid);
+
+    list.appendChild(div);
+  });
+}
+
+/* ================= APPROVE ================= */
+async function approve(requestId, uid){
+  if(!confirm("Approve this user?")) return;
+
+  // 1. Update request
+  await updateDoc(doc(db,"activationRequests",requestId),{
+    status: "approved",
+    reviewedAt: serverTimestamp()
+  });
+
+  // 2. Activate user
+  await updateDoc(doc(db,"users",uid),{
+    status: "active"
+  });
+
+  alert("✅ User activated");
+  loadRequests();
+}
+
+/* ================= REJECT ================= */
+async function rejectReq(requestId, uid){
+  const reason = prompt("Enter rejection reason:");
+  if(!reason) return alert("Rejection reason is required");
+
+  // 1. Update request
+  await updateDoc(doc(db,"activationRequests",requestId),{
+    status: "rejected",
+    rejectReason: reason,
+    reviewedAt: serverTimestamp()
+  });
+
+  // 2. Update user
+  await updateDoc(doc(db,"users",uid),{
+    status: "rejected"
+  });
+
+  alert("❌ User rejected");
+  loadRequests();
 }
 </script>
 
