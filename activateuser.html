@@ -23,7 +23,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
 import { 
-  getFirestore, collection, query, where, getDocs, doc, updateDoc, serverTimestamp, getDoc 
+  getFirestore, collection, query, where, getDocs, doc, updateDoc, serverTimestamp, getDoc, increment 
 } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
 /* ================= FIREBASE ================= */
@@ -100,19 +100,55 @@ async function loadRequests(){
 async function approve(requestId, uid){
   if(!confirm("Approve this user?")) return;
 
-  // 1. Update request
-  await updateDoc(doc(db,"activationRequests",requestId),{
-    status: "approved",
-    reviewedAt: serverTimestamp()
-  });
+  try{
+    // Get user being activated
+    const userRef = doc(db,"users",uid);
+    const userSnap = await getDoc(userRef);
 
-  // 2. Activate user
-  await updateDoc(doc(db,"users",uid),{
-    status: "active"
-  });
+    if(!userSnap.exists()) throw "User not found";
 
-  alert("✅ User activated");
-  loadRequests();
+    const userData = userSnap.data();
+
+    /* ================= REFERRAL BONUS ================= */
+    if(userData.referral){
+      const refUsername = userData.referral;
+
+      // Find referrer by username
+      const q = query(
+        collection(db,"users"),
+        where("username","==", refUsername)
+      );
+
+      const refSnap = await getDocs(q);
+
+      if(!refSnap.empty){
+        const refDoc = refSnap.docs[0];
+
+        // Add ₦200 to referrer
+        await updateDoc(doc(db,"users", refDoc.id), {
+          balance: increment(200)
+        });
+      }
+    }
+
+    /* ================= ACTIVATE USER ================= */
+    await updateDoc(userRef,{
+      status: "active"
+    });
+
+    /* ================= UPDATE REQUEST ================= */
+    await updateDoc(doc(db,"activationRequests",requestId),{
+      status: "approved",
+      reviewedAt: serverTimestamp()
+    });
+
+    alert("✅ User activated successfully");
+    loadRequests();
+
+  }catch(err){
+    console.error(err);
+    alert("Error: " + err);
+  }
 }
 
 /* ================= REJECT ================= */
@@ -120,14 +156,12 @@ async function rejectReq(requestId, uid){
   const reason = prompt("Enter rejection reason:");
   if(!reason) return alert("Rejection reason is required");
 
-  // 1. Update request
   await updateDoc(doc(db,"activationRequests",requestId),{
     status: "rejected",
     rejectReason: reason,
     reviewedAt: serverTimestamp()
   });
 
-  // 2. Update user
   await updateDoc(doc(db,"users",uid),{
     status: "rejected"
   });
