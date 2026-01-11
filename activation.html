@@ -2,55 +2,52 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Account Activation - Chiearn Hub</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <script src="https://js.paystack.co/v1/inline.js"></script>
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Poppins,sans-serif}
-body{background:#f3f6fb;padding:20px}
+body{font-family:Poppins;background:#f3f6fb;padding:20px}
 .container{max-width:480px;margin:auto;background:#fff;padding:25px;border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.08)}
-h2{text-align:center;margin-bottom:12px}
-input,button{width:100%;padding:12px;margin:8px 0 15px;border-radius:10px;border:1px solid #ccc}
-button{border:none;color:#fff;font-size:16px;cursor:pointer}
-.send-btn{background:#2563eb}
-.cancel-btn{background:#ef4444}
-.success-box{display:none;text-align:center;background:#e0ffe4;padding:15px;border-radius:10px;margin-top:20px;border:1px solid #4ade80;color:#166534;font-weight:bold}
+button,input{width:100%;padding:12px;margin:10px 0;border-radius:10px;border:1px solid #ccc}
+button{background:#2563eb;color:#fff;border:none;font-size:16px}
+.success{display:none;background:#e0ffe4;padding:15px;border-radius:10px;margin-top:15px;color:#166534;font-weight:bold;text-align:center}
 </style>
 </head>
+
 <body>
 
 <div class="container">
-<h2>Activate Your Account</h2>
+  <h2>Activate Your Account</h2>
 
-<p>Deposit <b>₦700</b> to:</p>
-<p>
-<b>Account Number:</b> 9162141283<br>
-<b>Bank:</b> Opay<br>
-<b>Account Name:</b> Chisom Nnonyelu Favour
-</p>
+  <p>Pay <b>₦700</b> and upload proof:</p>
+  <p>
+    <b>Account Number:</b> 9162141283<br>
+    <b>Bank:</b> Opay<br>
+    <b>Account Name:</b> Chisom Nnonyelu Favour
+  </p>
 
-<input id="senderName" placeholder="Sender name (required)">
-<input type="file" id="proofImage" accept="image/*">
+  <input type="text" id="senderName" placeholder="Sender name" />
+  <input type="file" id="proofImage" accept="image/*" />
 
-<button class="send-btn" id="sendBtn">I've Paid</button>
-<button class="cancel-btn" onclick="location.href='earner.html'">Cancel</button>
+  <button id="sendBtn">I've Sent It</button>
 
-<div class="success-box" id="successBox">
-✅ Submitted! Under review... Redirecting...
-</div>
+  <div class="success" id="successBox">
+    ✅ Submitted! Redirecting...
+  </div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, addDoc, collection, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, addDoc, collection, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
   authDomain: "chiearnhub-5ba9e.firebaseapp.com",
-  projectId: "chiearnhub-5ba9e"
+  projectId: "chiearnhub-5ba9e",
+  appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
 };
 
 const IMG_BB_KEY = "fb44bf17871e5949e02fe80b4f56fa47";
@@ -61,10 +58,10 @@ const db = getFirestore(app);
 
 let currentUser = null;
 
-/* ================= AUTH CHECK ================= */
+/* ================= AUTH & ROLE CHECK ================= */
 onAuthStateChanged(auth, async (user)=>{
   if(!user){
-    location.href="login.html";
+    location.href = "login.html";
     return;
   }
 
@@ -74,41 +71,34 @@ onAuthStateChanged(auth, async (user)=>{
   const snap = await getDoc(userRef);
 
   if(!snap.exists()){
-    alert("User record missing");
+    alert("Profile error");
     return;
   }
 
-  const userData = snap.data();
+  const u = snap.data();
 
   // Only earners
-  if(userData.model !== "Earner"){
+  if(u.model !== "Earner"){
     alert("Only earners can access this page");
-    location.href="index.html";
+    location.href = "index.html";
     return;
   }
 
-  // If already activated → redirect
-  if(userData.activated === true){
+  // Already active?
+  if(u.status === "active"){
     location.href = "task2.html";
-    return;
-  }
-
-  // If pending → block resubmission
-  if(userData.activationStatus === "pending"){
-    alert("Your activation is already under review");
-    location.href="earner.html";
     return;
   }
 });
 
 /* ================= IMGBB UPLOAD ================= */
 async function uploadToImgBB(file){
-  const formData = new FormData();
-  formData.append("image", file);
+  const fd = new FormData();
+  fd.append("image", file);
 
   const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMG_BB_KEY}`, {
     method: "POST",
-    body: formData
+    body: fd
   });
 
   const data = await res.json();
@@ -118,14 +108,14 @@ async function uploadToImgBB(file){
 }
 
 /* ================= SUBMIT ================= */
-document.getElementById("sendBtn").addEventListener("click", submitActivation);
+document.getElementById("sendBtn").addEventListener("click", submitRequest);
 
-async function submitActivation(){
+async function submitRequest(){
   const senderName = document.getElementById("senderName").value.trim();
   const file = document.getElementById("proofImage").files[0];
 
-  if(!senderName) return alert("Sender name required");
-  if(!file) return alert("Upload payment proof");
+  if(!senderName) return alert("Enter sender name");
+  if(!file) return alert("Upload proof");
 
   try{
     document.getElementById("sendBtn").disabled = true;
@@ -133,26 +123,25 @@ async function submitActivation(){
     const imageUrl = await uploadToImgBB(file);
 
     // Save activation request
-    await addDoc(collection(db,"activationRequests"), {
+    await addDoc(collection(db,"activationRequests"),{
       uid: currentUser.uid,
       email: currentUser.email,
-      senderName,
+      senderName: senderName,
       proofImage: imageUrl,
       status: "pending",
       createdAt: serverTimestamp()
     });
 
-    // Update user status
-    await updateDoc(doc(db,"users",currentUser.uid), {
-      activationStatus: "pending",
-      activated: false
+    // Mark user as pending
+    await updateDoc(doc(db,"users",currentUser.uid),{
+      status: "pending"
     });
 
     document.getElementById("successBox").style.display = "block";
 
     setTimeout(()=>{
-      location.href="earner.html";
-    }, 3000);
+      location.href = "earner.html";
+    },3000);
 
   }catch(err){
     alert(err);
