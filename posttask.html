@@ -70,6 +70,27 @@ button.danger{background:#dc2626}
   border-radius:8px;
   font-weight:600;
 }
+
+#loader{
+  display:none;
+  text-align:center;
+  padding:15px;
+  font-weight:600;
+}
+
+.spinner{
+  width:30px;
+  height:30px;
+  border:4px solid #ddd;
+  border-top:4px solid #0d6efd;
+  border-radius:50%;
+  margin:10px auto;
+  animation:spin 1s linear infinite;
+}
+
+@keyframes spin{
+  to{transform:rotate(360deg)}
+}
 </style>
 </head>
 
@@ -83,19 +104,8 @@ button.danger{background:#dc2626}
 <div class="container">
   <h3>Create Task</h3>
 
-  <label>Title / Platform</label>
-  <select id="platform">
-    <option value="">Select Platform</option>
-    <option>WhatsApp</option>
-    <option>Telegram</option>
-    <option>Instagram</option>
-    <option>Facebook</option>
-    <option>Twitter</option>
-    <option>TikTok</option>
-    <option>YouTube</option>
-    <option>Website</option>
-    <option>Gmail</option>
-  </select>
+  <label>Platform</label>
+  <select id="platform"></select>
 
   <label>Task Type</label>
   <select id="type">
@@ -109,6 +119,9 @@ button.danger{background:#dc2626}
 
   <label>Proof Title</label>
   <input type="text" id="proofTitle">
+  
+  <label>Task Guide</label>
+  <input type="text" id="taskguide">
 
   <label>Amount (People)</label>
   <input type="number" id="amount" min="10">
@@ -117,11 +130,16 @@ button.danger{background:#dc2626}
 
   <div class="price-box" id="totalBox">Total: ₦0</div>
 
-  <div class="actions">
+  <div id="loader">
+    <div class="spinner"></div>
+    Submitting task, please wait...
+  </div>
+
+  <div class="actions" id="actions">
     <button class="secondary" onclick="location.href='advertiser.html'">Home</button>
     <button class="secondary" onclick="location.href='deposit.html'">Deposit</button>
     <button class="danger" onclick="location.href='posttask.html'">Cancel</button>
-    <button onclick="submitTask()">Proceed</button>
+    <button id="submitBtn" onclick="submitTask()">Proceed</button>
   </div>
 </div>
 
@@ -149,42 +167,28 @@ const db = getFirestore(app);
 
 let currentUser;
 let userData = {};
+let selectedPrice = 0;
 
-/* ===== AUTH ===== */
-onAuthStateChanged(auth, async (user) => {
-  if (!user) return location.href = "login.html";
-
-  currentUser = user;
-
-  const snap = await getDoc(doc(db, "users", user.uid));
-  if (!snap.exists() || snap.data().model !== "Advertiser") {
-    alert("Unauthorized access");
-    return location.href = "login.html";
-  }
-
-  userData = snap.data();
-
-  onSnapshot(doc(db,"users",user.uid), s=>{
-    document.getElementById("balance").textContent =
-      "₦" + (s.data().balance || 0).toLocaleString();
-    userData.balance = s.data().balance || 0;
-  });
-});
-
-/* ===== TASK TYPES ===== */
-const taskTypes = {
-  WhatsApp:[{n:"Group Join",p:30},{n:"Channel Follow",p:25},{n:"Contact Save",p:20},{n:"Channel React",p:15},{n:"Status Posting",p:40}],
-  Telegram:[{n:"Group Join",p:25},{n:"Channel Follow",p:20}],
-  Instagram:[{n:"Follow",p:30},{n:"Like",p:15},{n:"Comment",p:25}],
-  Facebook:[{n:"Like Page",p:25},{n:"Follow",p:20}],
-  Twitter:[{n:"Follow",p:20},{n:"Retweet",p:15}],
-  TikTok:[{n:"Follow",p:25},{n:"Like",p:15}],
-  YouTube:[{n:"Subscribe",p:30},{n:"Like Video",p:15}],
-  Website:[{n:"Visit Website",p:20},{n:"Sign Up",p:40}],
-  Gmail:[{n:"Email Send",p:20},{n:"Email Review",p:30}]
+/* ===== TASK TYPES (EXACT AS YOU SENT) ===== */
+const taskTypes = { /* 👇 YOUR FULL OBJECT */ 
+WhatsApp:[{n:"Group Join/channel",p:30},{n:"Status Post",p:40},{n:"Channel Join and Like",p:40},{n:"Channel React No Join",p:15},{n:"Message Sending",p:40}],
+Telegram:[{n:"Group Join",p:20},{n:"Channel Follow",p:20},{n:"Simple Bot",p:35},{n:"Complex Bot",p:50},{n:"Web Bot",p:50}],
+Instagram:[{n:"Follow",p:30},{n:"Post Like",p:7},{n:"Comment",p:8},{n:"Post View",p:6},{n:"Live Engagement",p:20}],
+Facebook:[{n:"Like Page / Follow",p:15},{n:"Group Join",p:30},{n:"Post Like",p:7},{n:"Comment",p:20},{n:"Post Share",p:15},{n:"Video View",p:10},{n:"Post On Facebook",p:20},{n:"Page / Business Review",p:20}],
+Twitter:[{n:"Follow",p:15},{n:"Retweet",p:15},{n:"Comment",p:10},{n:"Like",p:8},{n:"Vote",p:20},{n:"Post On X",p:30}],
+TikTok:[{n:"Follow",p:15},{n:"Like",p:8},{n:"Comment",p:9},{n:"Video View",p:20},{n:"Repost",p:20},{n:"Add To Favourite",p:10},{n:"Use Sound",p:50}],
+YouTube:[{n:"Subscribe",p:25},{n:"Like Video",p:5},{n:"Comment",p:12},{n:"Video View",p:20},{n:"Video Share",p:20}],
+Website:[{n:"Interact With Website",p:15},{n:"Simple Sign Up",p:35},{n:"Blog Comment",p:15},{n:"Review",p:20},{n:"Complex Sign Up",p:50}],
+Gmail:[{n:"Email Creation",p:70},{n:"Email Sell",p:100}],
+Audiomack:[{n:"Stream Music",p:35},{n:"Music Comment",p:15},{n:"Music Like",p:10},{n:"Add To Favourite",p:15},{n:"Page Follow",p:20}],
+Boomplay:[{n:"Stream Music",p:35},{n:"Music Comment",p:15},{n:"Music Like",p:10},{n:"Add To Favourite",p:15},{n:"Page Follow",p:20}],
+Spotify:[{n:"Stream Music",p:40},{n:"Music Like",p:25},{n:"Add To Playlist",p:25},{n:"Page Follow",p:20}],
+Threads:[{n:"Post Like",p:19},{n:"Comment",p:15},{n:"Follow",p:15},{n:"Repost",p:20}]
 };
 
-let selectedPrice = 0;
+/* ===== INIT PLATFORM ===== */
+platform.innerHTML = `<option value="">Select Platform</option>` +
+Object.keys(taskTypes).map(p=>`<option>${p}</option>`).join("");
 
 platform.onchange = () => {
   type.innerHTML = "<option value=''>Select Task Type</option>";
@@ -201,54 +205,86 @@ platform.onchange = () => {
 };
 
 type.onchange = () => {
-  selectedPrice = +type.selectedOptions[0].dataset.price;
+  selectedPrice = Number(type.selectedOptions[0].dataset.price);
   priceBox.textContent = `Price per person: ₦${selectedPrice}`;
   calculateTotal();
 };
 
 window.calculateTotal = () => {
-  const a = +amount.value;
-  totalBox.textContent =
-    a >= 10 ? `Total: ₦${a * selectedPrice}` : "Total: ₦0";
+  const a = Number(amount.value);
+  totalBox.textContent = a >= 10 ? `Total: ₦${a * selectedPrice}` : "Total: ₦0";
 };
 
-/* ===== SUBMIT TASK ===== */
+/* ===== AUTH ===== */
+onAuthStateChanged(auth, async (user) => {
+  if (!user) return location.href = "login.html";
+
+  currentUser = user;
+  const snap = await getDoc(doc(db, "users", user.uid));
+  if (!snap.exists() || snap.data().model !== "Advertiser") {
+    alert("Unauthorized access");
+    return location.href = "login.html";
+  }
+
+  userData = snap.data();
+
+  onSnapshot(doc(db,"users",user.uid), s=>{
+    document.getElementById("balance").textContent =
+      "₦" + (s.data().balance || 0).toLocaleString();
+    userData.balance = s.data().balance || 0;
+  });
+});
+
+/* ===== SUBMIT ===== */
 window.submitTask = async () => {
-  const qty = +amount.value;
-  const total = qty * selectedPrice;
+  const submitBtn = document.getElementById("submitBtn");
+  const loader = document.getElementById("loader");
+  const actions = document.getElementById("actions");
 
-  if (qty < 10 || !platform.value || !type.value || !link.value || !proofTitle.value) {
-    alert("Complete all fields correctly");
-    return;
+  try{
+    const qty = Number(amount.value);
+    const total = qty * selectedPrice;
+
+    if (qty < 10 || !platform.value || !type.value || !link.value || !proofTitle.value) {
+      alert("Complete all fields correctly");
+      return;
+    }
+
+    if ((userData.balance || 0) < total) {
+      alert("Insufficient balance");
+      return location.href = "deposit.html";
+    }
+
+    // 🔄 SHOW LOADER
+    actions.style.display = "none";
+    loader.style.display = "block";
+
+    const userRef = doc(db,"users",currentUser.uid);
+    await updateDoc(userRef,{ balance: userData.balance - total });
+
+    await addDoc(collection(db,"tasks"),{
+      userId: currentUser.uid,
+      platform: platform.value,
+      type: type.value,
+      link: link.value,
+      proofTitle: proofTitle.value,
+      guide: taskguide.value,
+      quantity: qty,
+      remaining: qty,
+      price: selectedPrice,
+      total: total,
+      status: "pending",
+      createdAt: serverTimestamp()
+    });
+
+    alert("✅ Task submitted for admin approval.");
+    location.href="advertiser.html";
+
+  }catch(err){
+    alert("❌ Error: " + err.message);
+    loader.style.display = "none";
+    actions.style.display = "grid";
   }
-
-  if ((userData.balance || 0) < total) {
-    alert("Insufficient balance");
-    return location.href = "deposit.html";
-  }
-
-  const userRef = doc(db,"users",currentUser.uid);
-
-  await updateDoc(userRef,{
-    balance: userData.balance - total
-  });
-
-  await addDoc(collection(db,"tasks"),{
-    userId: currentUser.uid,
-    platform: platform.value,
-    type: type.value,
-    link: link.value,
-    proofTitle: proofTitle.value,
-    quantity: qty,
-    remaining: qty,
-    price: selectedPrice,
-    total: total,
-    status: "pending",
-    createdAt: serverTimestamp()
-  });
-
-  alert("✅ Task submitted for admin approval");
-  location.href="advertiser.html";
 };
 </script>
 
