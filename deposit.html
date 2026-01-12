@@ -56,8 +56,6 @@ button {
   margin-top: 10px;
 }
 
-button:hover { background: #084dbf; }
-
 .spinner {
   border: 4px solid #f3f3f3;
   border-top: 4px solid var(--primary);
@@ -72,20 +70,8 @@ button:hover { background: #084dbf; }
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
-
-.nav-buttons {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 20px;
-}
-.nav-buttons button {
-  width: 30%;
-  font-size: 14px;
-  padding: 10px;
-}
 </style>
 </head>
-
 <body>
 
 <header>Chiearn Hub - Deposit</header>
@@ -98,7 +84,7 @@ button:hover { background: #084dbf; }
   <select id="method">
     <option value="">Select Deposit Method</option>
     <option value="squadco">Squadco</option>
-    <option value="manual">Manual</option>
+    <option value="manuel">Manuel</option>
     <option value="korapay">Korapay</option>
     <option value="usdt">USDT</option>
   </select>
@@ -107,10 +93,9 @@ button:hover { background: #084dbf; }
 
   <button id="proceedBtn">Proceed</button>
 
-  <div class="nav-buttons">
-    <button onclick="window.location.href='advertiser.html'">Back</button>
-    <button onclick="window.location.href='deposithistory.html'">History</button>
-    <button onclick="window.location.href='profile.html'">Profile</button>
+  <div id="loading" style="display:none;">
+    <div class="spinner"></div>
+    Processing...
   </div>
 </div>
 
@@ -133,9 +118,9 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-let currentUser = null;
+let currentUserData = null;
 
-// ================= AUTH CHECK =================
+/* ================= PROTECT PAGE ================= */
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     alert("Please login first");
@@ -143,8 +128,7 @@ onAuthStateChanged(auth, async (user) => {
     return;
   }
 
-  const userRef = doc(db, "users", user.uid);
-  const snap = await getDoc(userRef);
+  const snap = await getDoc(doc(db, "users", user.uid));
 
   if (!snap.exists()) {
     alert("Account not found");
@@ -152,20 +136,18 @@ onAuthStateChanged(auth, async (user) => {
     return;
   }
 
-  const userData = snap.data();
+  currentUserData = snap.data();
 
-  if (userData.role !== "Advertiser") {
-    alert("Only advertisers can access deposit");
+  if (currentUserData.model !== "Advertiser") {
+    alert("Only advertisers can access this page");
     window.location.href = "dashboard.html";
     return;
   }
-
-  currentUser = user;
 });
 
-// ================= PROCEED =================
+/* ================= DEPOSIT ================= */
 document.getElementById("proceedBtn").addEventListener("click", async () => {
-  const amount = parseFloat(document.getElementById("amount").value);
+  const amount = Number(document.getElementById("amount").value);
   const method = document.getElementById("method").value;
 
   if (!amount || amount < 200) {
@@ -174,35 +156,28 @@ document.getElementById("proceedBtn").addEventListener("click", async () => {
   }
 
   if (!method) {
-    alert("Select deposit method");
+    alert("Select a deposit method");
     return;
   }
 
-  document.getElementById("depositBox").innerHTML = `
-    <div class="spinner"></div>
-    <p>Processing your deposit...</p>
-  `;
+  document.getElementById("loading").style.display = "block";
 
   // Save deposit to Firestore
-  const docRef = await addDoc(collection(db, "deposits"), {
-    uid: currentUser.uid,
+  const depositRef = await addDoc(collection(db, "deposits"), {
+    userId: auth.currentUser.uid,
+    email: currentUserData.email,
     amount: amount,
     method: method,
     status: "pending",
     createdAt: serverTimestamp()
   });
 
-  // Save for next page
-  localStorage.setItem("lastDepositId", docRef.id);
-  localStorage.setItem("lastDepositAmount", amount);
-  localStorage.setItem("lastDepositMethod", method);
-
-  // Redirect
+  // Redirect based on method
   setTimeout(() => {
-    if (method === "squadco") window.location.href = "deposit-squadco.html";
-    if (method === "manual") window.location.href = "deposit-manual.html";
-    if (method === "korapay") window.location.href = "deposit-korapay.html";
-    if (method === "usdt") window.location.href = "deposit-usdt.html";
+    if (method === "squadco") window.location.href = "deposit-squadco.html?id=" + depositRef.id;
+    if (method === "manuel") window.location.href = "deposit-manuel.html?id=" + depositRef.id;
+    if (method === "korapay") window.location.href = "deposit-korapay.html?id=" + depositRef.id;
+    if (method === "usdt") window.location.href = "deposit-usdt.html?id=" + depositRef.id;
   }, 1500);
 });
 </script>
