@@ -56,6 +56,13 @@ button {
   margin-top: 10px;
 }
 
+button:hover { background: #084dbf; }
+
+#loading {
+  display: none;
+  margin-top: 20px;
+}
+
 .spinner {
   border: 4px solid #f3f3f3;
   border-top: 4px solid var(--primary);
@@ -70,40 +77,58 @@ button {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+.nav-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.nav-buttons button {
+  width: 30%;
+  font-size: 14px;
+  padding: 10px;
+}
 </style>
 </head>
+
 <body>
 
 <header>Chiearn Hub - Deposit</header>
 
-<div class="container" id="depositBox">
+<div class="container" id="depositContainer">
   <h2>Make a Deposit</h2>
+  <p>Minimum deposit is ₦200</p>
 
   <input type="number" id="amount" placeholder="Enter amount" min="200">
 
   <select id="method">
     <option value="">Select Deposit Method</option>
-    <option value="squadco">Squadco</option>
-    <option value="manuel">Manuel</option>
-    <option value="korapay">Korapay</option>
-    <option value="usdt">USDT</option>
+    <option value="Squadco">Squadco</option>
+    <option value="Manual">Manual</option>
+    <option value="Korapay">Korapay</option>
+    <option value="USDT">USDT</option>
   </select>
-
-  <p>Minimum deposit is ₦200</p>
 
   <button id="proceedBtn">Proceed</button>
 
-  <div id="loading" style="display:none;">
+  <div class="nav-buttons">
+    <button onclick="window.location.href='advertiser.html'">Back</button>
+    <button onclick="window.location.href='deposithistory.html'">History</button>
+    <button onclick="window.location.href='profile.html'">Profile</button>
+  </div>
+
+  <div id="loading">
     <div class="spinner"></div>
-    Processing...
+    Processing your deposit...
   </div>
 </div>
 
-<!-- ================= FIREBASE ================= -->
+<!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
@@ -120,7 +145,7 @@ const db = getFirestore(app);
 
 let currentUserData = null;
 
-/* ================= PROTECT PAGE ================= */
+// CHECK AUTH & ROLE
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     alert("Please login first");
@@ -128,10 +153,11 @@ onAuthStateChanged(auth, async (user) => {
     return;
   }
 
-  const snap = await getDoc(doc(db, "users", user.uid));
+  const userRef = doc(db, "users", user.uid);
+  const snap = await getDoc(userRef);
 
   if (!snap.exists()) {
-    alert("Account not found");
+    alert("User record not found");
     window.location.href = "login.html";
     return;
   }
@@ -139,15 +165,15 @@ onAuthStateChanged(auth, async (user) => {
   currentUserData = snap.data();
 
   if (currentUserData.model !== "Advertiser") {
-    alert("Only advertisers can access this page");
-    window.location.href = "dashboard.html";
+    alert("Only advertisers can access this page.");
+    window.location.href = "login.html";
     return;
   }
 });
 
-/* ================= DEPOSIT ================= */
-document.getElementById("proceedBtn").addEventListener("click", async () => {
-  const amount = Number(document.getElementById("amount").value);
+// PROCEED BUTTON
+document.getElementById("proceedBtn").addEventListener("click", () => {
+  const amount = parseFloat(document.getElementById("amount").value);
   const method = document.getElementById("method").value;
 
   if (!amount || amount < 200) {
@@ -156,29 +182,33 @@ document.getElementById("proceedBtn").addEventListener("click", async () => {
   }
 
   if (!method) {
-    alert("Select a deposit method");
+    alert("Please select a deposit method");
     return;
   }
 
+  // Hide button & show loader
+  document.getElementById("proceedBtn").style.display = "none";
   document.getElementById("loading").style.display = "block";
 
-  // Save deposit to Firestore
-  const depositRef = await addDoc(collection(db, "deposits"), {
+  // Save deposit to localStorage
+  const depositData = {
     userId: auth.currentUser.uid,
     email: currentUserData.email,
     amount: amount,
     method: method,
     status: "pending",
-    createdAt: serverTimestamp()
-  });
+    date: new Date().toISOString()
+  };
 
-  // Redirect based on method
+  localStorage.setItem("pendingDeposit", JSON.stringify(depositData));
+
+  // Redirect
   setTimeout(() => {
-    if (method === "squadco") window.location.href = "deposit-squadco.html?id=" + depositRef.id;
-    if (method === "manuel") window.location.href = "deposit-manuel.html?id=" + depositRef.id;
-    if (method === "korapay") window.location.href = "deposit-korapay.html?id=" + depositRef.id;
-    if (method === "usdt") window.location.href = "deposit-usdt.html?id=" + depositRef.id;
-  }, 1500);
+    if (method === "Manual") window.location.href = "Manual.html";
+    if (method === "Korapay") window.location.href = "korapay.html";
+    if (method === "Squadco") window.location.href = "squadco.html";
+    if (method === "USDT") window.location.href = "usdt.html";
+  }, 2000);
 });
 </script>
 
