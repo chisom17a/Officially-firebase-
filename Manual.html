@@ -62,20 +62,9 @@ button {
   margin-top: 10px;
 }
 
-.submit-btn {
-  background: #0d6efd;
-  color: white;
-}
-
-.cancel-btn {
-  background: #aaa;
-  color: white;
-}
-
-.copy-btn {
-  background: #198754;
-  color: white;
-}
+.submit-btn { background: #0d6efd; color: white; }
+.cancel-btn { background: #aaa; color: white; }
+.copy-btn { background: #198754; color: white; }
 
 #loading {
   display: none;
@@ -105,6 +94,9 @@ button {
 <header>Manual Deposit</header>
 
 <div class="container">
+
+  <p id="depositMessage" style="font-weight:bold;"></p>
+
   <h3>Transfer To:</h3>
 
   <div class="bank-box">
@@ -117,7 +109,7 @@ button {
   <p><b>After payment, submit your proof below</b></p>
 
   <input type="text" id="senderName" placeholder="Sender's Name">
-  <input type="url" id="proofImage" placeholder="Paste imgBB image link">
+  <input type="file" id="proofFile" accept="image/*">
 
   <button class="submit-btn" id="submitBtn">Submit Proof</button>
   <button class="cancel-btn" onclick="window.location.href='deposit.html'">Cancel</button>
@@ -126,9 +118,10 @@ button {
     <div class="spinner"></div>
     Submitting deposit...
   </div>
+
 </div>
 
-<!-- FIREBASE -->
+<!-- FIREBASE + IMGBB -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
@@ -147,9 +140,24 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-let userData = null;
+// 🔑 Your imgBB API key
+const IMGBB_API_KEY = "fb44bf17871e5949e02fe80b4f56fa47";
 
-// Check login
+let userData = null;
+let pending = null;
+
+// Load pending deposit
+pending = JSON.parse(localStorage.getItem("pendingDeposit"));
+if (!pending) {
+  alert("No pending deposit found");
+  window.location.href = "deposit.html";
+}
+
+// Show message
+document.getElementById("depositMessage").innerText =
+  `Transfer ₦${pending.amount} to the account details below and submit proof of payment for verification. A 5% bonus will be added to the deposit amount.`;
+
+// Auth check
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     alert("Please login");
@@ -172,20 +180,29 @@ window.copyAccount = function() {
   alert("Account number copied!");
 }
 
+// Upload to imgBB
+async function uploadToImgBB(file) {
+  const formData = new FormData();
+  formData.append("image", file);
+
+  const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+    method: "POST",
+    body: formData
+  });
+
+  const data = await res.json();
+  if (!data.success) throw new Error("Image upload failed");
+
+  return data.data.url;
+}
+
 // Submit proof
 document.getElementById("submitBtn").addEventListener("click", async () => {
   const senderName = document.getElementById("senderName").value.trim();
-  const proofImage = document.getElementById("proofImage").value.trim();
+  const file = document.getElementById("proofFile").files[0];
 
-  if (!senderName || !proofImage) {
-    alert("Please fill all fields");
-    return;
-  }
-
-  const pending = JSON.parse(localStorage.getItem("pendingDeposit"));
-  if (!pending) {
-    alert("No pending deposit found");
-    window.location.href = "deposit.html";
+  if (!senderName || !file) {
+    alert("Please enter sender name and upload proof image");
     return;
   }
 
@@ -193,13 +210,17 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
   document.getElementById("loading").style.display = "block";
 
   try {
+    // Upload image
+    const imageUrl = await uploadToImgBB(file);
+
+    // Save to Firestore
     await addDoc(collection(db, "deposits"), {
       userId: auth.currentUser.uid,
       email: userData.email,
       amount: pending.amount,
       method: "Manual",
       senderName: senderName,
-      proofImage: proofImage,
+      proofImage: imageUrl,
       referral: userData.referral || null,
       status: "pending",
       createdAt: serverTimestamp()
@@ -207,11 +228,11 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
 
     localStorage.removeItem("pendingDeposit");
 
-    alert("Deposit submitted successfully! Awaiting approval.");
+    alert("Deposit submitted successfully! Awaiting admin approval.");
     window.location.href = "advertiser.html";
 
   } catch (err) {
-    alert("Error submitting deposit: " + err.message);
+    alert("Error: " + err.message);
     document.getElementById("submitBtn").style.display = "block";
     document.getElementById("loading").style.display = "none";
   }
