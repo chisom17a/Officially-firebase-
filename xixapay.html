@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Xixipay Deposit - Chiearn Hub</title>
+<title>Xixapay Deposit - Chiearn Hub</title>
 <style>
 body{
   font-family: Inter, sans-serif;
@@ -64,10 +64,10 @@ button{
 </head>
 <body>
 
-<header>Xixipay Deposit</header>
+<header>Xixapay Deposit</header>
 
 <div class="container">
-  <h3>Deposit via Xixipay</h3>
+  <h3>Deposit via Xixapay</h3>
   <p id="msg" style="font-weight:bold;"></p>
   <input type="text" id="amountInput" placeholder="Amount (₦)" readonly>
   <button id="proceedBtn">Proceed to Pay</button>
@@ -132,7 +132,7 @@ onAuthStateChanged(auth, async user=>{
   }
 
   document.getElementById("msg").innerText = 
-    `You are about to deposit ₦${pendingDeposit.amount}. Click proceed to pay via Xixipay.`;
+    `You are about to deposit ₦${pendingDeposit.amount}. Click proceed to pay via Xixapay.`;
 });
 
 // ✅ Proceed button
@@ -142,7 +142,7 @@ document.getElementById("proceedBtn").addEventListener("click", async ()=>{
   document.getElementById("loading").style.display = "block";
 
   try{
-    const res = await fetch("https://chiearnhub-backend.onrender.com/init-xixipay",{
+    const res = await fetch("https://chiearnhub-backend.onrender.com/init-xixapay",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
@@ -161,7 +161,7 @@ document.getElementById("proceedBtn").addEventListener("click", async ()=>{
       return;
     }
 
-    // Redirect to Xixipay payment page
+    // Redirect to Xixapay payment page
     window.location.href = data.paymentUrl;
 
   }catch(err){
