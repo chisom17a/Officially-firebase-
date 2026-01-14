@@ -1,62 +1,63 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>My Tasks - Advertiser</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+  <title>My Tasks - Advertiser</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body{font-family:Arial,sans-serif;background:#f4f6f8;margin:0;padding:0;}
+    header{background:#111;color:white;padding:15px;text-align:center;font-size:20px;}
+    .container{max-width:1000px;margin:20px auto;padding:10px;}
+    .card{
+      background:white;
+      padding:15px;
+      border-radius:10px;
+      margin-bottom:15px;
+      box-shadow:0 2px 8px rgba(0,0,0,.08);
+    }
+    .row{margin:5px 0;font-size:15px;}
+    .btn{
+      padding:8px 12px;
+      border:none;
+      border-radius:6px;
+      cursor:pointer;
+      font-weight:bold;
+      margin-right:5px;
+    }
+    .pause{background:#ffc107;color:white;}
+    .resume{background:#28a745;color:white;}
+    .add{background:#0d6efd;color:white;}
+    .visit{background:#6c757d;color:white;}
+    .details{background:#17a2b8;color:white;}
 
-<style>
-body{font-family:Arial;background:#f4f6f8;margin:0}
-header{background:#111;color:white;padding:15px;text-align:center;font-size:20px}
-.container{max-width:1100px;margin:20px auto;padding:10px}
-
-.card{
-  background:white;
-  padding:15px;
-  border-radius:10px;
-  margin-bottom:15px;
-  box-shadow:0 2px 8px rgba(0,0,0,.08);
-}
-
-.row{margin:6px 0}
-
-.badge{
-  padding:4px 10px;
-  border-radius:20px;
-  font-size:13px;
-  font-weight:bold;
-}
-
-.active{background:#d1fae5;color:#065f46}
-.paused{background:#fee2e2;color:#991b1b}
-
-.btn{
-  padding:8px 12px;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
-  font-weight:bold;
-  margin-right:5px;
-}
-
-.pause{background:#f59e0b;color:white}
-.resume{background:#16a34a;color:white}
-.add{background:#0d6efd;color:white}
-.visit{background:#6b7280;color:white}
-.view{background:#111;color:white}
-</style>
+    .loading{
+      display:none;
+      text-align:center;
+      margin-top:10px;
+    }
+    .spinner{
+      width:25px;
+      height:25px;
+      border:4px solid #eee;
+      border-top:4px solid #111;
+      border-radius:50%;
+      animation:spin 1s linear infinite;
+      margin:auto;
+    }
+    @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+  </style>
 </head>
 <body>
 
-<header>📢 My Posted Tasks</header>
-<div class="container" id="list">Loading...</div>
+<header>📋 My Tasks - Advertiser</header>
+<div class="container" id="taskList">Loading...</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
 import {
   getFirestore, collection, query, where, getDocs,
-  doc, updateDoc, increment
+  doc, getDoc, updateDoc, runTransaction, increment
 } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -72,97 +73,131 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const list = document.getElementById("list");
+const taskList = document.getElementById("taskList");
 
 onAuthStateChanged(auth, async user=>{
   if(!user) return location.href="login.html";
+
+  const userDocSnap = await getDoc(doc(db,"users",user.uid));
+  if(!userDocSnap.exists() || userDocSnap.data().model !== "Advertiser"){
+    alert("Access denied");
+    return location.href="index.html";
+  }
 
   loadTasks(user.uid);
 });
 
 async function loadTasks(uid){
-  list.innerHTML = "Loading...";
+  taskList.innerHTML = "Loading...";
 
-  const q = query(collection(db,"tasks"), where("posterId","==",uid));
+  const q = query(collection(db,"availabletasks"), where("posterId","==",uid));
   const snap = await getDocs(q);
 
   if(snap.empty){
-    list.innerHTML = "<b>You have not posted any tasks yet.</b>";
+    taskList.innerHTML = "<b>No tasks posted yet.</b>";
     return;
   }
 
-  list.innerHTML = "";
+  taskList.innerHTML = "";
 
-  snap.forEach(d=>{
+  for(const d of snap.docs){
     const t = d.data();
 
     const div = document.createElement("div");
     div.className = "card";
-
-    const statusBadge = t.status === "active"
-      ? `<span class="badge active">Active</span>`
-      : `<span class="badge paused">Paused</span>`;
-
     div.innerHTML = `
       <div class="row"><b>Platform:</b> ${t.platform}</div>
       <div class="row"><b>Type:</b> ${t.type}</div>
-      <div class="row"><b>Reward:</b> ₦${t.earnerPrice}</div>
-      <div class="row"><b>Status:</b> ${statusBadge}</div>
-      <div class="row"><b>Count:</b> ${t.quantity} / ${t.remaining}</div>
+      <div class="row"><b>Link:</b> <a href="${t.link}" target="_blank">${t.link}</a></div>
+      <div class="row"><b>Quantity:</b> ${t.quantity} / Remaining: ${t.remaining}</div>
+      <div class="row"><b>Status:</b> ${t.status}</div>
 
       <div style="margin-top:10px">
-        <button class="btn ${t.status==="active"?"pause":"resume"}">
-          ${t.status==="active"?"Pause":"Resume"}
-        </button>
+        <button class="btn pause">${t.status === "active" ? "Pause" : "Resume"}</button>
         <button class="btn add">Add Members</button>
-        <button class="btn visit">Visit</button>
-        <button class="btn view">View Details</button>
+        <button class="btn visit" onclick="window.open('${t.link}','_blank')">Visit Task</button>
+        <button class="btn details" onclick="window.location.href='task-details.html?taskId=${d.id}'">View Details</button>
+      </div>
+
+      <div class="loading">
+        <div class="spinner"></div>
+        Processing...
       </div>
     `;
 
-    const pauseBtn = div.querySelector(".pause, .resume");
+    const pauseBtn = div.querySelector(".pause");
     const addBtn = div.querySelector(".add");
-    const visitBtn = div.querySelector(".visit");
-    const viewBtn = div.querySelector(".view");
+    const loading = div.querySelector(".loading");
 
-    // Pause / Resume
+    // Pause/Resume
     pauseBtn.onclick = async ()=>{
-      const newStatus = t.status === "active" ? "paused" : "active";
-      if(!confirm(`Change status to ${newStatus}?`)) return;
-
-      await updateDoc(doc(db,"tasks",d.id),{ status:newStatus });
-      alert("Updated");
-      loadTasks(auth.currentUser.uid);
+      pauseBtn.style.display = addBtn.style.display = "none";
+      loading.style.display = "block";
+      const newStatus = t.status === "active" ? "inactive" : "active";
+      try{
+        await updateDoc(doc(db,"availabletasks",d.id), { status:newStatus });
+        alert("Task status updated to "+newStatus);
+        pauseBtn.textContent = newStatus === "active" ? "Pause" : "Resume";
+        pauseBtn.style.display = addBtn.style.display = "inline-block";
+        loading.style.display = "none";
+        t.status = newStatus;
+      }catch(e){
+        alert("Error: "+e.message);
+      }
     };
 
     // Add Members
     addBtn.onclick = async ()=>{
-      const add = +prompt("How many members to add?");
-      if(!add || add < 1) return;
+      const userSnap = await getDoc(doc(db,"users",t.posterId));
+      const userBal = userSnap.data().balance || 0;
 
-      if(!confirm("Confirm adding "+add+" slots?")) return;
+      const count = prompt(`Your balance: ₦${userBal}\nHow many members do you want to add?`);
+      const n = Number(count);
+      if(!n || n <= 0) return;
 
-      await updateDoc(doc(db,"tasks",d.id),{
-        quantity: increment(add),
-        remaining: increment(add)
-      });
+      const cost = n * t.earnerPrice;
 
-      alert("Slots added");
-      loadTasks(auth.currentUser.uid);
+      if(userBal < cost){
+        alert("Insufficient balance. Redirecting to deposit page.");
+        return location.href="mytasks.html";
+      }
+
+      if(!confirm(`This will cost ₦${cost}. Proceed?`)) return;
+
+      pauseBtn.style.display = addBtn.style.display = "none";
+      loading.style.display = "block";
+
+      try{
+        await runTransaction(db, async (tran)=>{
+          const userRef = doc(db,"users",t.posterId);
+          const taskRef = doc(db,"availabletasks",d.id);
+
+          const u = await tran.get(userRef);
+          const newBal = (u.data().balance || 0) - cost;
+
+          tran.update(userRef,{ balance:newBal });
+          tran.update(taskRef,{
+            remaining: t.remaining + n,
+            quantity: t.quantity + n,
+            status: "active"
+          });
+        });
+
+        alert("Members added successfully!");
+        t.remaining += n;
+        t.quantity += n;
+        t.status = "active";
+        pauseBtn.textContent = "Pause";
+      }catch(e){
+        alert("Error: "+e.message);
+      }finally{
+        pauseBtn.style.display = addBtn.style.display = "inline-block";
+        loading.style.display = "none";
+      }
     };
 
-    // Visit link
-    visitBtn.onclick = ()=>{
-      window.open(t.link, "_blank");
-    };
-
-    // View details
-    viewBtn.onclick = ()=>{
-      location.href = "advertiser-task-details.html?id=" + d.id;
-    };
-
-    list.appendChild(div);
-  });
+    taskList.appendChild(div);
+  }
 }
 </script>
 
