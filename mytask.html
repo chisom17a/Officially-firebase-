@@ -7,8 +7,9 @@
 
 <style>
 body{font-family:Arial;background:#f4f6f8;margin:0}
-header{background:#0d6efd;color:white;padding:15px;text-align:center;font-size:20px}
-.container{max-width:1000px;margin:20px auto;padding:10px}
+header{background:#111;color:white;padding:15px;text-align:center;font-size:20px}
+.container{max-width:1100px;margin:20px auto;padding:10px}
+
 .card{
   background:white;
   padding:15px;
@@ -16,26 +17,33 @@ header{background:#0d6efd;color:white;padding:15px;text-align:center;font-size:2
   margin-bottom:15px;
   box-shadow:0 2px 8px rgba(0,0,0,.08);
 }
+
 .row{margin:6px 0}
+
+.badge{
+  padding:4px 10px;
+  border-radius:20px;
+  font-size:13px;
+  font-weight:bold;
+}
+
+.active{background:#d1fae5;color:#065f46}
+.paused{background:#fee2e2;color:#991b1b}
+
 .btn{
-  padding:9px 12px;
+  padding:8px 12px;
   border:none;
   border-radius:6px;
-  font-weight:bold;
   cursor:pointer;
+  font-weight:bold;
   margin-right:5px;
 }
-.pause{background:#ffc107}
-.resume{background:#28a745;color:white}
-.visit{background:#0d6efd;color:white}
-.details{background:#6f42c1;color:white}
-.add{background:#20c997;color:white}
-.loading{display:none;margin-top:10px}
-.spinner{
-  width:30px;height:30px;border:4px solid #eee;border-top:4px solid #111;border-radius:50%;
-  animation:spin 1s linear infinite;margin:auto
-}
-@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+
+.pause{background:#f59e0b;color:white}
+.resume{background:#16a34a;color:white}
+.add{background:#0d6efd;color:white}
+.visit{background:#6b7280;color:white}
+.view{background:#111;color:white}
 </style>
 </head>
 <body>
@@ -48,7 +56,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebas
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
 import {
   getFirestore, collection, query, where, getDocs,
-  doc, getDoc, updateDoc, increment
+  doc, updateDoc, increment
 } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -69,17 +77,13 @@ const list = document.getElementById("list");
 onAuthStateChanged(auth, async user=>{
   if(!user) return location.href="login.html";
 
-  const us = await getDoc(doc(db,"users",user.uid));
-  if(!us.exists() || us.data().model !== "Advertiser"){
-    alert("Access denied");
-    return location.href="index.html";
-  }
-
   loadTasks(user.uid);
 });
 
 async function loadTasks(uid){
-  const q = query(collection(db,"availabletasks"), where("posterId","==",uid));
+  list.innerHTML = "Loading...";
+
+  const q = query(collection(db,"tasks"), where("posterId","==",uid));
   const snap = await getDocs(q);
 
   if(snap.empty){
@@ -89,77 +93,78 @@ async function loadTasks(uid){
 
   list.innerHTML = "";
 
-  for(const d of snap.docs){
+  snap.forEach(d=>{
     const t = d.data();
 
     const div = document.createElement("div");
     div.className = "card";
 
-    const status = t.paused ? "⏸ Paused" : "▶️ Running";
+    const statusBadge = t.status === "active"
+      ? `<span class="badge active">Active</span>`
+      : `<span class="badge paused">Paused</span>`;
 
     div.innerHTML = `
-      <div class="row"><b>Task:</b> ${t.platform} - ${t.type}</div>
-      <div class="row"><b>Status:</b> ${status}</div>
-      <div class="row"><b>Count:</b> ${t.total} / ${t.remaining}</div>
+      <div class="row"><b>Platform:</b> ${t.platform}</div>
+      <div class="row"><b>Type:</b> ${t.type}</div>
+      <div class="row"><b>Reward:</b> ₦${t.earnerPrice}</div>
+      <div class="row"><b>Status:</b> ${statusBadge}</div>
+      <div class="row"><b>Count:</b> ${t.quantity} / ${t.remaining}</div>
 
       <div style="margin-top:10px">
-        <button class="btn visit">Visit</button>
-        <button class="btn ${t.paused ? "resume":"pause"}">${t.paused ? "Resume":"Pause"}</button>
+        <button class="btn ${t.status==="active"?"pause":"resume"}">
+          ${t.status==="active"?"Pause":"Resume"}
+        </button>
         <button class="btn add">Add Members</button>
-        <button class="btn details">View Details</button>
-      </div>
-
-      <div class="loading">
-        <div class="spinner"></div>
-        Processing...
+        <button class="btn visit">Visit</button>
+        <button class="btn view">View Details</button>
       </div>
     `;
 
-    const visitBtn = div.querySelector(".visit");
-    const toggleBtn = div.querySelector(".pause, .resume");
+    const pauseBtn = div.querySelector(".pause, .resume");
     const addBtn = div.querySelector(".add");
-    const detailsBtn = div.querySelector(".details");
-    const loading = div.querySelector(".loading");
+    const visitBtn = div.querySelector(".visit");
+    const viewBtn = div.querySelector(".view");
 
-    visitBtn.onclick = ()=> window.open(t.link, "_blank");
+    // Pause / Resume
+    pauseBtn.onclick = async ()=>{
+      const newStatus = t.status === "active" ? "paused" : "active";
+      if(!confirm(`Change status to ${newStatus}?`)) return;
 
-    toggleBtn.onclick = async ()=>{
-      if(!confirm("Change task status?")) return;
-
-      toggleBtn.style.display = addBtn.style.display = detailsBtn.style.display = visitBtn.style.display = "none";
-      loading.style.display="block";
-
-      await updateDoc(doc(db,"availabletasks", d.id), {
-        paused: !t.paused
-      });
-
-      location.reload();
+      await updateDoc(doc(db,"tasks",d.id),{ status:newStatus });
+      alert("Updated");
+      loadTasks(auth.currentUser.uid);
     };
 
+    // Add Members
     addBtn.onclick = async ()=>{
-      const num = Number(prompt("How many members to add?"));
-      if(!num || num < 1) return;
+      const add = +prompt("How many members to add?");
+      if(!add || add < 1) return;
 
-      if(!confirm("Add "+num+" members?")) return;
+      if(!confirm("Confirm adding "+add+" slots?")) return;
 
-      toggleBtn.style.display = addBtn.style.display = detailsBtn.style.display = visitBtn.style.display = "none";
-      loading.style.display="block";
-
-      await updateDoc(doc(db,"availabletasks", d.id), {
-        total: increment(num),
-        remaining: increment(num)
+      await updateDoc(doc(db,"tasks",d.id),{
+        quantity: increment(add),
+        remaining: increment(add)
       });
 
-      location.reload();
+      alert("Slots added");
+      loadTasks(auth.currentUser.uid);
     };
 
-    detailsBtn.onclick = ()=>{
-      location.href = "task-details.html?id=" + d.id;
+    // Visit link
+    visitBtn.onclick = ()=>{
+      window.open(t.link, "_blank");
+    };
+
+    // View details
+    viewBtn.onclick = ()=>{
+      location.href = "advertiser-task-details.html?id=" + d.id;
     };
 
     list.appendChild(div);
-  }
+  });
 }
 </script>
+
 </body>
 </html>
