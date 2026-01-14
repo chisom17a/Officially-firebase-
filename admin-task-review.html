@@ -1,211 +1,187 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Task Review - Chiearn Hub</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-
+<title>Admin Task Review</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-:root {
-  --primary: #2563eb;
-  --success: #16a34a;
-  --danger: #dc2626;
-  --bg: #f4f7fa;
-  --white: #fff;
-  --shadow: rgba(0,0,0,.1);
-}
-
-* {
-  box-sizing: border-box;
-  font-family: Inter, sans-serif;
-}
-
-body {
-  margin: 0;
-  background: var(--bg);
-}
-
-header {
-  background: var(--white);
-  padding: 15px 25px;
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--primary);
-  box-shadow: 0 2px 8px var(--shadow);
-}
-
-.container {
-  max-width: 1000px;
-  margin: auto;
-  padding: 25px;
-}
-
-.card {
-  background: var(--white);
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px var(--shadow);
-  margin-bottom: 20px;
-}
-
-.card h3 {
-  margin: 0 0 10px;
-}
-
-.meta {
-  font-size: 14px;
-  margin-bottom: 10px;
-  color: #555;
-}
-
-.proof-box {
-  background: #f1f5f9;
-  padding: 12px;
-  border-radius: 8px;
-  margin: 10px 0;
-  font-size: 14px;
-}
-
-img {
-  max-width: 100%;
-  border-radius: 8px;
-  margin-top: 8px;
-}
-
-.actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 15px;
-}
-
-button {
-  padding: 10px 16px;
-  border-radius: 8px;
-  border: none;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.approve {
-  background: var(--success);
-  color: white;
-}
-
-.reject {
-  background: var(--danger);
-  color: white;
-}
+body{font-family:Arial;background:#f5f7fb;margin:0;padding:0}
+header{background:#111;color:#fff;padding:15px;text-align:center;font-size:20px}
+.container{max-width:900px;margin:auto;padding:15px}
+.card{background:#fff;margin:15px 0;padding:15px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,.1)}
+.btn{padding:10px 14px;border:none;border-radius:6px;color:#fff;font-weight:bold;cursor:pointer}
+.approve{background:#28a745}
+.reject{background:#dc3545}
+.loader{display:none;text-align:center}
+.spinner{width:30px;height:30px;border:4px solid #ddd;border-top:4px solid #111;border-radius:50%;animation:spin 1s linear infinite;margin:auto}
+@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+img{max-width:100%;border-radius:8px}
 </style>
 </head>
-
 <body>
 
-<header>Admin – Task Submissions</header>
+<header>Admin Task Review</header>
 
-<div class="container" id="taskContainer"></div>
-  <button type="button" class="btn secondary" onclick="location.href='adminpanel.html'">Home</button>
+<div class="container" id="list">
+Loading...
+</div>
 
-<script>
-/* =====================================================
-   AUTH CHECK (ADMIN ONLY)
-===================================================== */
-const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-const users = JSON.parse(localStorage.getItem("users")) || [];
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { 
+  getAuth, 
+  onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import { 
+  getFirestore, 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  doc, 
+  runTransaction,
+  serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
-if (!currentUser) {
-  window.location.href = "login.html";
-}
+/* 🔥 FIREBASE CONFIG */
+const firebaseConfig = {
+  apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
+  authDomain: "chiearnhub-5ba9e.firebaseapp.com",
+  projectId: "chiearnhub-5ba9e",
+  storageBucket: "chiearnhub-5ba9e.firebasestorage.app",
+  messagingSenderId: "332513744974",
+  appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
+};
 
-const admin = users.find(
-  u => u.email === currentUser.email && u.model === "Admin"
-);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-if (!admin) {
-  alert("Unauthorized access");
-  window.location.href = "login.html";
-}
+/* 🔐 AUTH CHECK */
+onAuthStateChanged(auth, async (user)=>{
+  if(!user) return location.href="login.html";
 
-/* =====================================================
-   LOAD TASK SUBMISSIONS
-===================================================== */
-let taskActivities = JSON.parse(localStorage.getItem("taskActivities")) || [];
-const container = document.getElementById("taskContainer");
+  const usnap = await (await import("https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js"))
+    .getDoc(doc(db,"users",user.uid));
 
-function renderTasks() {
-  container.innerHTML = "";
+  if(!usnap.exists() || usnap.data().model !== "Admin"){
+    alert("Access denied");
+    return location.href="dashboard.html";
+  }
 
-  const pendingTasks = taskActivities.filter(t => t.status === "pending");
+  loadSubmissions();
+});
 
-  if (pendingTasks.length === 0) {
-    container.innerHTML = "<p>No pending task submissions.</p>";
+/* 📥 LOAD PENDING SUBMISSIONS */
+async function loadSubmissions(){
+  const q = query(collection(db,"submissions"), where("status","==","pending"));
+  const snap = await getDocs(q);
+
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+
+  if(snap.empty){
+    list.innerHTML = "<p>No pending submissions</p>";
     return;
   }
 
-  pendingTasks.forEach((task, index) => {
+  snap.forEach(docu=>{
+    const d = docu.data();
     const div = document.createElement("div");
-    div.className = "card";
+    div.className="card";
     div.innerHTML = `
-      <h3>${task.title}</h3>
-      <div class="meta">
-        <b>User Email:</b> ${task.userEmail}<br>
-        <b>Reward:</b> ₦${task.reward}<br>
-        <b>Submitted:</b> ${new Date(task.createdAt).toLocaleString()}
+      <b>User:</b> ${d.userId}<br>
+      <b>Task:</b> ${d.taskId}<br>
+      <b>Proof:</b><br>
+      ${d.proofUrl ? `<img src="${d.proofUrl}">` : `<pre>${d.proofText||""}</pre>`}
+      <br><br>
+
+      <div id="btns_${docu.id}">
+        <button class="btn approve" onclick="approve('${docu.id}')">Approve</button>
+        <button class="btn reject" onclick="rejectTask('${docu.id}')">Reject</button>
       </div>
 
-      <div class="proof-box">
-        <b>Text Proof:</b><br>
-        ${task.textProof}
-        ${task.imageProof ? `<img src="${task.imageProof}">` : ""}
-      </div>
-
-      <div class="actions">
-        <button class="approve" onclick="approveTask(${index})">Approve</button>
-        <button class="reject" onclick="rejectTask(${index})">Reject</button>
+      <div class="loader" id="load_${docu.id}">
+        <div class="spinner"></div> Processing...
       </div>
     `;
-    container.appendChild(div);
+    list.appendChild(div);
   });
 }
 
-renderTasks();
+/* ✅ APPROVE */
+window.approve = async function(id){
+  hideButtons(id);
 
-/* =====================================================
-   APPROVE TASK
-===================================================== */
-function approveTask(index) {
-  const task = taskActivities.filter(t => t.status === "pending")[index];
+  try{
+    const subRef = doc(db,"submissions",id);
 
-  const user = users.find(u => u.email === task.userEmail);
-  if (!user) return alert("User not found");
+    await runTransaction(db, async (t)=>{
+      const subSnap = await t.get(subRef);
+      if(!subSnap.exists()) throw "Submission missing";
 
-  // credit balance
-  user.balance = (user.balance || 0) + task.reward;
+      const sub = subSnap.data();
 
-  // update task status
-  task.status = "approved";
-  task.reviewedAt = new Date().toISOString();
+      const userRef = doc(db,"users",sub.userId);
+      const taskRef = doc(db,"availabletasks",sub.taskId);
 
-  localStorage.setItem("users", JSON.stringify(users));
-  localStorage.setItem("taskActivities", JSON.stringify(taskActivities));
+      const userSnap = await t.get(userRef);
 
-  alert("Task approved & user credited!");
-  renderTasks();
+      const reward = sub.reward || 0;
+      const newBal = (userSnap.data().balance||0) + reward;
+
+      t.update(userRef, { balance: newBal });
+      t.update(subRef, { status:"approved", reviewedAt: serverTimestamp() });
+    });
+
+    alert("Approved & credited");
+    loadSubmissions();
+
+  }catch(e){
+    alert("Error: "+e);
+  }
 }
 
-/* =====================================================
-   REJECT TASK
-===================================================== */
-function rejectTask(index) {
-  const task = taskActivities.filter(t => t.status === "pending")[index];
-  task.status = "rejected";
-  task.reviewedAt = new Date().toISOString();
+/* ❌ REJECT */
+window.rejectTask = async function(id){
+  const reason = prompt("Why are you rejecting this task?");
+  if(!reason) return;
 
-  localStorage.setItem("taskActivities", JSON.stringify(taskActivities));
+  hideButtons(id);
 
-  alert("Task rejected");
-  renderTasks();
+  try{
+    const subRef = doc(db,"submissions",id);
+
+    await runTransaction(db, async (t)=>{
+      const subSnap = await t.get(subRef);
+      const sub = subSnap.data();
+
+      const taskRef = doc(db,"availabletasks",sub.taskId);
+      const taskSnap = await t.get(taskRef);
+
+      t.update(taskRef,{
+        remaining: (taskSnap.data().remaining||0) + 1
+      });
+
+      t.update(subRef,{
+        status:"rejected",
+        rejectReason: reason,
+        reviewedAt: serverTimestamp()
+      });
+    });
+
+    alert("Rejected & task refunded");
+    loadSubmissions();
+
+  }catch(e){
+    alert("Error: "+e);
+  }
+}
+
+/* 🎯 UI LOCK */
+function hideButtons(id){
+  document.getElementById("btns_"+id).style.display="none";
+  document.getElementById("load_"+id).style.display="block";
 }
 </script>
 
