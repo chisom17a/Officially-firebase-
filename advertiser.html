@@ -8,51 +8,33 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
   <style>
-    *{
-      margin:0;
-      padding:0;
-      box-sizing:border-box;
-      font-family:'Poppins',sans-serif;
-    }
+    *{margin:0;padding:0;box-sizing:border-box;font-family:Poppins,sans-serif}
+    body{background:#f4f6f9;color:#1e293b}
 
-    body{
-      background:#f4f6f9;
-      color:#1e293b;
-    }
-
-    /* LOADER */
     #loader{
-      position:fixed;
-      inset:0;
+      position:fixed;inset:0;
       background:#f4f6f9;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      z-index:9999;
+      display:flex;align-items:center;justify-content:center;
+      z-index:9999
     }
 
     .spinner{
-      width:55px;
-      height:55px;
+      width:55px;height:55px;
       border:6px solid #cbd5e1;
       border-top:6px solid #2563eb;
       border-radius:50%;
-      animation:spin .9s linear infinite;
+      animation:spin .9s linear infinite
     }
 
-    @keyframes spin{
-      to{transform:rotate(360deg)}
-    }
+    @keyframes spin{to{transform:rotate(360deg)}}
 
-    /* SIDEBAR */
     .sidebar{
       width:70px;
       background:linear-gradient(180deg,#1e293b,#0f172a);
       height:100vh;
       position:fixed;
       transition:.3s;
-      padding-top:20px;
-      overflow:hidden;
+      padding-top:20px
     }
 
     .sidebar:hover{width:220px}
@@ -63,90 +45,62 @@
       font-weight:600;
       text-align:center;
       margin-bottom:40px;
-      white-space:nowrap;
+      white-space:nowrap
     }
 
     .menu a{
       display:flex;
-      align-items:center;
       gap:15px;
       padding:15px 20px;
       color:#cbd5e1;
-      text-decoration:none;
-      transition:.3s;
+      text-decoration:none
     }
 
-    .menu a:hover{
-      background:rgba(255,255,255,.1);
-      color:#fff;
-    }
+    .menu a:hover{background:rgba(255,255,255,.1);color:#fff}
 
-    .menu span:last-child{
-      opacity:0;
-      transition:.3s;
-      white-space:nowrap;
-    }
+    .menu span:last-child{opacity:0;transition:.3s}
+    .sidebar:hover .menu span:last-child{opacity:1}
 
-    .sidebar:hover .menu span:last-child{
-      opacity:1;
-    }
-
-    /* MAIN */
     .main{
       margin-left:70px;
       padding:30px;
       display:none;
-      transition:.3s;
+      transition:.3s
     }
 
-    .sidebar:hover ~ .main{
-      margin-left:220px;
-    }
+    .sidebar:hover~.main{margin-left:220px}
 
-    .header{
+    .header,.card{
       background:#fff;
       padding:25px;
       border-radius:15px;
       box-shadow:0 10px 25px rgba(0,0,0,.05);
-      margin-bottom:30px;
+      margin-bottom:20px
     }
 
     .grid{
       display:grid;
       grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
-      gap:20px;
+      gap:20px
     }
 
-    .card{
-      background:#fff;
-      padding:25px;
-      border-radius:20px;
-      box-shadow:0 10px 25px rgba(0,0,0,.06);
-    }
-
-    .value{
-      font-size:30px;
-      font-weight:600;
-    }
+    .value{font-size:30px;font-weight:600}
 
     .btn{
       padding:10px 18px;
       border:none;
       border-radius:10px;
-      background:linear-gradient(135deg,#2563eb,#1d4ed8);
+      background:#2563eb;
       color:#fff;
       cursor:pointer;
-      margin-top:10px;
-      margin-right:10px;
+      margin-top:10px
     }
 
-    .btn.secondary{
-      background:#0f172a;
-    }
+    .btn.secondary{background:#0f172a}
 
     .referral{
       background:linear-gradient(135deg,#0f172a,#1e293b);
-      color:#fff;
+      color:#fff
     }
 
     .referral input{
@@ -154,19 +108,15 @@
       padding:10px;
       border-radius:8px;
       border:none;
-      margin:15px 0;
+      margin:15px 0
     }
   </style>
 </head>
 
 <body>
 
-<!-- LOADER -->
-<div id="loader">
-  <div class="spinner"></div>
-</div>
+<div id="loader"><div class="spinner"></div></div>
 
-<!-- SIDEBAR -->
 <div class="sidebar">
   <div class="logo">Chiearn</div>
   <div class="menu">
@@ -174,13 +124,12 @@
     <a href="posttask.html"><span>📝</span><span>Post Task</span></a>
     <a href="deposit.html"><span>💰</span><span>Deposit</span></a>
     <a href="Adprofile.html"><span>👤</span><span>Profile</span></a>
-    <a href="#" onclick="logout()" style="color:#f87171;">
+    <a href="#" onclick="logout()" style="color:#f87171">
       <span>🚪</span><span>Logout</span>
     </a>
   </div>
 </div>
 
-<!-- MAIN -->
 <div class="main" id="mainContent">
   <div class="header">
     <h1 id="welcomeText">Advertiser Dashboard</h1>
@@ -196,7 +145,7 @@
 
     <div class="card referral">
       <h2>Referral Program</h2>
-      <input type="text" id="refLink" readonly>
+      <input id="refLink" readonly />
       <button class="btn" onclick="copyReferral()">Copy Link</button>
       <p>✔ 0.5% advertiser deposit</p>
       <p>✔ ₦500 per activated earner</p>
@@ -204,27 +153,22 @@
   </div>
 </div>
 
-<!-- FIREBASE -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
   import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
-  const firebaseConfig = {
+  const app = initializeApp({
     apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
     authDomain: "chiearnhub-5ba9e.firebaseapp.com",
     projectId: "chiearnhub-5ba9e",
     storageBucket: "chiearnhub-5ba9e.firebasestorage.app",
     messagingSenderId: "332513744974",
     appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
-  };
+  });
 
-  const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
-
-  const loader = document.getElementById("loader");
-  const main = document.getElementById("mainContent");
 
   onAuthStateChanged(auth, user => {
     if (!user) {
@@ -232,43 +176,31 @@
       return;
     }
 
-    const userRef = doc(db, "users", user.uid);
+    const ref = doc(db, "users", user.uid);
 
-    onSnapshot(userRef, snap => {
-      if (!snap.exists()) {
-        alert("User record not found.");
-        return;
-      }
+    onSnapshot(ref, snap => {
+      if (!snap.exists()) return;
 
       const data = snap.data();
 
-      // SAFE advertiser validation
-      if (!data.model || data.model.toLowerCase() !== "advertiser") {
-        alert("Unauthorized access. Advertiser account required.");
+      // ✅ ONLY block UI, DO NOT logout
+      if (data.model !== "Advertiser") {
+        alert("This dashboard is for advertisers only.");
         return;
       }
 
-      document.getElementById("welcomeText").textContent =
-        `Welcome, ${data.username || "Advertiser"}`;
-
-      document.getElementById("balance").textContent =
-        "₦" + Number(data.balance || 0).toLocaleString();
-
-      const baseURL = window.location.origin + "/?ref=";
-      document.getElementById("refLink").value =
-        baseURL + (data.username || user.uid);
+      welcomeText.textContent = `Welcome, ${data.username}`;
+      balance.textContent = "₦" + (data.balance || 0).toLocaleString();
+      refLink.value = `${location.origin}/?ref=${data.username}`;
 
       loader.style.display = "none";
-      main.style.display = "block";
+      mainContent.style.display = "block";
     });
   });
 
   window.copyReferral = () => {
-    const input = document.getElementById("refLink");
-    input.select();
-    input.setSelectionRange(0, 99999);
-    navigator.clipboard.writeText(input.value);
-    alert("Referral link copied!");
+    navigator.clipboard.writeText(refLink.value);
+    alert("Referral link copied");
   };
 
   window.logout = async () => {
