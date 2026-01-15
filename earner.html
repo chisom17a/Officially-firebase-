@@ -29,6 +29,30 @@
       color: var(--text);
     }
 
+    /* 🔄 LOADING OVERLAY */
+    #loadingOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(255,255,255,0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+    }
+
+    .loader {
+      width: 50px;
+      height: 50px;
+      border: 5px solid #cce3ff;
+      border-top: 5px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
     header {
       background: var(--white);
       padding: 14px 22px;
@@ -174,9 +198,20 @@
 
 <body>
 
+<!-- 🔄 LOADER -->
+<div id="loadingOverlay">
+  <div class="loader"></div>
+</div>
+
 <div class="popup" id="welcomePopup">
   <span class="close" onclick="closePopup()">✖</span>
   <p id="popupText"></p>
+  <p>
+    👉 WhatsApp:
+    <a href="https://chat.whatsapp.com/KG0U1mX9m8O9ZGSTbd8J3s" target="_blank">Join</a><br>
+    👉 Telegram:
+    <a href="https://t.me/glitz_withdraw" target="_blank">@glitz_withdraw</a>
+  </p>
 </div>
 
 <header>
@@ -190,15 +225,20 @@
 <div id="sideMenu" class="side-menu">
   <span class="close-btn" onclick="closeMenu()">&times;</span>
   <a href="earner.html">Dashboard</a>
+  <a href="activation.html">Activate</a>
   <a href="task2.html">Tasks</a>
   <a href="referral.html">Referral</a>
+  <a href="taskhistory.html">Past task</a>
+  <a href="supportlist.html">Support</a>
   <a href="withdraw.html">Withdraw</a>
+  <a href="profile.html">Profile</a>
+  <a href="history.html">History</a>
+  <a href="wallet.html">Bank Details</a>
   <a href="#" onclick="logout()" style="color:red;">Logout</a>
 </div>
 
 <div class="container">
   <div class="dashboard-grid">
-
     <div class="card">
       <div class="balance-amount" id="balance">₦0</div>
       <button class="btn" onclick="location.href='withdraw.html'">Withdraw</button>
@@ -211,7 +251,6 @@
       <input type="text" id="refLink" readonly>
       <button class="btn" onclick="copyReferral()">Copy Link</button>
     </div>
-
   </div>
 </div>
 
@@ -220,7 +259,6 @@
   import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
   import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-  /* ✅ NEW FIREBASE CONFIG */
   const firebaseConfig = {
     apiKey: "AIzaSyCqHY59fXbXWTOtki5cBT-qryPVNerzToM",
     authDomain: "chiearnhubvercel.firebaseapp.com",
@@ -235,9 +273,7 @@
   const db = getFirestore(app);
 
   const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-
   if (!currentUser || currentUser.model !== "Earner") {
-    alert("Unauthorized access");
     window.location.href = "login.html";
   }
 
@@ -252,33 +288,33 @@
 
     document.getElementById("welcomeText").textContent = `Welcome, ${username}`;
     document.getElementById("balance").textContent = "₦" + balance.toLocaleString();
+    document.getElementById("refLink").value = window.location.origin + "/?ref=" + username;
 
-    const baseURL = window.location.origin + "/?ref=";
-    document.getElementById("refLink").value = baseURL + username;
-
-    const popup = document.getElementById("welcomePopup");
     document.getElementById("popupText").innerHTML =
-      `Welcome <b>${username}</b>, dashboard loaded successfully.`;
+      `Welcome <b>${username}</b>, you can join our chat groups.`;
 
-    popup.style.display = "block";
-    setTimeout(() => popup.style.display = "none", 4000);
+    document.getElementById("welcomePopup").style.display = "block";
+    document.getElementById("loadingOverlay").style.display = "none";
+
+    setTimeout(() => {
+      document.getElementById("welcomePopup").style.display = "none";
+    }, 5000);
   });
-
-  window.copyReferral = () => {
-    navigator.clipboard.writeText(document.getElementById("refLink").value);
-    alert("Referral link copied!");
-  };
 
   window.logout = () => {
     signOut(auth).then(() => {
       localStorage.removeItem("currentUser");
-      window.location.href = "login.html";
+      location.href = "login.html";
     });
   };
 
-  window.openMenu = () => document.getElementById("sideMenu").style.width = "250px";
-  window.closeMenu = () => document.getElementById("sideMenu").style.width = "0";
-  window.closePopup = () => document.getElementById("welcomePopup").style.display = "none";
+  window.openMenu = () => sideMenu.style.width = "250px";
+  window.closeMenu = () => sideMenu.style.width = "0";
+  window.copyReferral = () => {
+    navigator.clipboard.writeText(refLink.value);
+    alert("Referral link copied!");
+  };
+  window.closePopup = () => welcomePopup.style.display = "none";
 </script>
 
 </body>
