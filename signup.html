@@ -36,14 +36,12 @@
       font-weight: 600;
       color: #fff;
     }
-
     .loader {
       display: none;
       text-align: center;
       margin-top: 20px;
       font-weight: bold;
     }
-
     .spinner {
       width: 40px;
       height: 40px;
@@ -53,13 +51,17 @@
       animation: spin 1s linear infinite;
       margin: 10px auto;
     }
-
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-
-    a { font-size: 13px; display:block; margin-top:10px; text-decoration:none; color:#555; }
+    a {
+      font-size: 13px;
+      display: block;
+      margin-top: 10px;
+      text-decoration: none;
+      color: #555;
+    }
   </style>
 </head>
 
@@ -94,7 +96,6 @@
   </form>
 </section>
 
-<!-- Auto referral reader -->
 <script>
   const params = new URLSearchParams(window.location.search);
   const ref = params.get("ref");
@@ -106,20 +107,21 @@
 </script>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 import {
-  getFirestore, doc, setDoc, serverTimestamp, collection, query, where, getDocs, runTransaction
-} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+  getFirestore, doc, setDoc, serverTimestamp,
+  collection, query, where, getDocs, runTransaction
+} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-// Firebase config
+/* ✅ NEW FIREBASE CONFIG (YOUR PROVIDED ONE) */
 const firebaseConfig = {
-  apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
-  authDomain: "chiearnhub-5ba9e.firebaseapp.com",
-  projectId: "chiearnhub-5ba9e",
-  storageBucket: "chiearnhub-5ba9e.firebasestorage.app",
-  messagingSenderId: "332513744974",
-  appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
+  apiKey: "AIzaSyCqHY59fXbXWTOtki5cBT-qryPVNerzToM",
+  authDomain: "chiearnhubvercel.firebaseapp.com",
+  projectId: "chiearnhubvercel",
+  storageBucket: "chiearnhubvercel.firebasestorage.app",
+  messagingSenderId: "1069350970788",
+  appId: "1:1069350970788:web:b6fb81b6c397344d118d31"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -165,7 +167,6 @@ form.addEventListener("submit", async (e) => {
   showLoading();
 
   try {
-    // Check duplicates
     if (await existsInUsers("username", username)) throw "Username already taken";
     if (await existsInUsers("email", email)) throw "Email already used";
     if (await existsInUsers("phone", phone)) throw "Phone number already used";
@@ -178,10 +179,8 @@ form.addEventListener("submit", async (e) => {
       refUserDoc = snap.docs[0];
     }
 
-    // ✅ Step 1: Create user in Firebase Auth
     const cred = await createUserWithEmailAndPassword(auth, email, password);
 
-    // ✅ Step 2: Create Firestore user doc and handle referral
     await runTransaction(db, async (transaction) => {
       if (refUserDoc) {
         const refRef = doc(db, "users", refUserDoc.id);
@@ -208,7 +207,6 @@ form.addEventListener("submit", async (e) => {
     window.location.href = "login.html";
 
   } catch (err) {
-    console.error(err);
     alert(typeof err === "string" ? err : err.message);
     hideLoading();
   }
