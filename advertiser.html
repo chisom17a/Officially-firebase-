@@ -20,7 +20,7 @@
       color: #1e293b;
     }
 
-    /* ===== LOADING OVERLAY ===== */
+    /* 🔄 LOADER */
     #loader {
       position: fixed;
       inset: 0;
@@ -32,12 +32,12 @@
     }
 
     .spinner {
-      width: 50px;
-      height: 50px;
-      border: 5px solid #cbd5e1;
-      border-top: 5px solid #2563eb;
+      width: 55px;
+      height: 55px;
+      border: 6px solid #cbd5e1;
+      border-top: 6px solid #2563eb;
       border-radius: 50%;
-      animation: spin 1s linear infinite;
+      animation: spin 0.9s linear infinite;
     }
 
     @keyframes spin {
@@ -73,7 +73,7 @@
       padding: 15px 20px;
       color: #cbd5e1;
       text-decoration: none;
-      transition: all 0.3s;
+      transition: 0.3s;
     }
 
     .menu a:hover {
@@ -87,12 +87,16 @@
       white-space: nowrap;
     }
 
-    .sidebar:hover .menu span:last-child { opacity: 1; }
+    .sidebar:hover .menu span:last-child {
+      opacity: 1;
+    }
 
+    /* MAIN */
     .main {
       margin-left: 70px;
       padding: 30px;
       transition: margin-left 0.3s;
+      display: none;
     }
 
     .sidebar:hover ~ .main { margin-left: 220px; }
@@ -153,7 +157,7 @@
 
 <body>
 
-<!-- LOADER -->
+<!-- 🔄 LOADER -->
 <div id="loader">
   <div class="spinner"></div>
 </div>
@@ -171,7 +175,7 @@
 </div>
 
 <!-- MAIN -->
-<div class="main">
+<div class="main" id="mainContent">
   <div class="header">
     <h1 id="welcomeText">Advertiser Dashboard</h1>
   </div>
@@ -215,20 +219,26 @@
 
   onAuthStateChanged(auth, user => {
     if (!user) {
-      window.location.href = "login.html";
+      location.href = "login.html";
       return;
     }
 
     const userRef = doc(db, "users", user.uid);
 
     onSnapshot(userRef, snap => {
-      if (!snap.exists()) return;
+      if (!snap.exists()) {
+        signOut(auth);
+        location.href = "login.html";
+        return;
+      }
 
       const data = snap.data();
 
+      // 🔒 Advertiser-only access
       if (data.model !== "Advertiser") {
+        alert("Unauthorized access");
         signOut(auth);
-        window.location.href = "login.html";
+        location.href = "login.html";
         return;
       }
 
@@ -238,10 +248,12 @@
       document.getElementById("balance").textContent =
         "₦" + (data.balance || 0).toLocaleString();
 
+      // ✅ SAME referral format as earners
       const baseURL = window.location.origin + "/?ref=";
       document.getElementById("refLink").value = baseURL + data.username;
 
       document.getElementById("loader").style.display = "none";
+      document.getElementById("mainContent").style.display = "block";
     });
   });
 
@@ -252,7 +264,7 @@
 
   window.logout = async () => {
     await signOut(auth);
-    window.location.href = "login.html";
+    location.href = "login.html";
   };
 </script>
 
