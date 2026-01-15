@@ -83,7 +83,6 @@
       margin-bottom: 10px;
     }
 
-    /* 🔄 LOADER */
     .loader {
       display: none;
       margin: 15px auto;
@@ -121,20 +120,22 @@
   </form>
 </section>
 
-<!-- 🔥 FIREBASE LOGIN SCRIPT -->
+<!-- 🔥 UPDATED FIREBASE LOGIN SCRIPT -->
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword } from
-    "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+    "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
   import { getFirestore, doc, getDoc } from
-    "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+    "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
+  /* ✅ NEW FIREBASE CONFIG */
   const firebaseConfig = {
-    apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
-    authDomain: "chiearnhub-5ba9e.firebaseapp.com",
-    projectId: "chiearnhub-5ba9e",
-    messagingSenderId: "332513744974",
-    appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
+    apiKey: "AIzaSyCqHY59fXbXWTOtki5cBT-qryPVNerzToM",
+    authDomain: "chiearnhubvercel.firebaseapp.com",
+    projectId: "chiearnhubvercel",
+    storageBucket: "chiearnhubvercel.firebasestorage.app",
+    messagingSenderId: "1069350970788",
+    appId: "1:1069350970788:web:b6fb81b6c397344d118d31"
   };
 
   const app = initializeApp(firebaseConfig);
@@ -157,20 +158,14 @@
     const password = document.getElementById("password").value;
 
     try {
-      // 🔐 LOGIN
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // 📄 FETCH PROFILE
       const userDoc = await getDoc(doc(db, "users", user.uid));
-
-      if (!userDoc.exists()) {
-        throw new Error("User profile not found.");
-      }
+      if (!userDoc.exists()) throw new Error("User profile not found");
 
       const userData = userDoc.data();
 
-      // 💾 SAVE SESSION (THIS IS WHAT OTHER PAGES WILL USE)
       localStorage.setItem("currentUser", JSON.stringify({
         uid: user.uid,
         email: user.email,
@@ -178,7 +173,6 @@
         model: userData.model
       }));
 
-      // 🚀 REDIRECT
       if (userData.model === "Earner") {
         window.location.href = "earner.html";
       } else if (userData.model === "Advertiser") {
