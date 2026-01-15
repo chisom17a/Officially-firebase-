@@ -8,156 +8,160 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Poppins', sans-serif;
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+      font-family:'Poppins',sans-serif;
     }
 
-    body {
-      background: #f4f6f9;
-      color: #1e293b;
+    body{
+      background:#f4f6f9;
+      color:#1e293b;
     }
 
-    /* 🔄 LOADER */
-    #loader {
-      position: fixed;
-      inset: 0;
-      background: #f4f6f9;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
+    /* LOADER */
+    #loader{
+      position:fixed;
+      inset:0;
+      background:#f4f6f9;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:9999;
     }
 
-    .spinner {
-      width: 55px;
-      height: 55px;
-      border: 6px solid #cbd5e1;
-      border-top: 6px solid #2563eb;
-      border-radius: 50%;
-      animation: spin 0.9s linear infinite;
+    .spinner{
+      width:55px;
+      height:55px;
+      border:6px solid #cbd5e1;
+      border-top:6px solid #2563eb;
+      border-radius:50%;
+      animation:spin .9s linear infinite;
     }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+    @keyframes spin{
+      to{transform:rotate(360deg)}
     }
 
     /* SIDEBAR */
-    .sidebar {
-      width: 70px;
-      background: linear-gradient(180deg, #1e293b, #0f172a);
-      height: 100vh;
-      position: fixed;
-      overflow: hidden;
-      transition: width 0.3s;
-      padding-top: 20px;
+    .sidebar{
+      width:70px;
+      background:linear-gradient(180deg,#1e293b,#0f172a);
+      height:100vh;
+      position:fixed;
+      transition:.3s;
+      padding-top:20px;
+      overflow:hidden;
     }
 
-    .sidebar:hover { width: 220px; }
+    .sidebar:hover{width:220px}
 
-    .logo {
-      color: #fff;
-      font-size: 20px;
-      font-weight: 600;
-      text-align: center;
-      margin-bottom: 40px;
-      white-space: nowrap;
+    .logo{
+      color:#fff;
+      font-size:20px;
+      font-weight:600;
+      text-align:center;
+      margin-bottom:40px;
+      white-space:nowrap;
     }
 
-    .menu a {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      padding: 15px 20px;
-      color: #cbd5e1;
-      text-decoration: none;
-      transition: 0.3s;
+    .menu a{
+      display:flex;
+      align-items:center;
+      gap:15px;
+      padding:15px 20px;
+      color:#cbd5e1;
+      text-decoration:none;
+      transition:.3s;
     }
 
-    .menu a:hover {
-      background: rgba(255,255,255,0.1);
-      color: #fff;
+    .menu a:hover{
+      background:rgba(255,255,255,.1);
+      color:#fff;
     }
 
-    .menu span:last-child {
-      opacity: 0;
-      transition: opacity 0.3s;
-      white-space: nowrap;
+    .menu span:last-child{
+      opacity:0;
+      transition:.3s;
+      white-space:nowrap;
     }
 
-    .sidebar:hover .menu span:last-child {
-      opacity: 1;
+    .sidebar:hover .menu span:last-child{
+      opacity:1;
     }
 
     /* MAIN */
-    .main {
-      margin-left: 70px;
-      padding: 30px;
-      transition: margin-left 0.3s;
-      display: none;
+    .main{
+      margin-left:70px;
+      padding:30px;
+      display:none;
+      transition:.3s;
     }
 
-    .sidebar:hover ~ .main { margin-left: 220px; }
-
-    .header {
-      background: #fff;
-      padding: 25px;
-      border-radius: 15px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-      margin-bottom: 30px;
+    .sidebar:hover ~ .main{
+      margin-left:220px;
     }
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 20px;
+    .header{
+      background:#fff;
+      padding:25px;
+      border-radius:15px;
+      box-shadow:0 10px 25px rgba(0,0,0,.05);
+      margin-bottom:30px;
     }
 
-    .card {
-      background: #fff;
-      padding: 25px;
-      border-radius: 20px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+      gap:20px;
     }
 
-    .value {
-      font-size: 30px;
-      font-weight: 600;
+    .card{
+      background:#fff;
+      padding:25px;
+      border-radius:20px;
+      box-shadow:0 10px 25px rgba(0,0,0,.06);
     }
 
-    .btn {
-      padding: 10px 18px;
-      border: none;
-      border-radius: 10px;
-      background: linear-gradient(135deg, #2563eb, #1d4ed8);
-      color: #fff;
-      cursor: pointer;
-      margin-top: 10px;
-      margin-right: 10px;
+    .value{
+      font-size:30px;
+      font-weight:600;
     }
 
-    .btn.secondary { background: #0f172a; }
-
-    .referral {
-      background: linear-gradient(135deg, #0f172a, #1e293b);
-      color: #fff;
+    .btn{
+      padding:10px 18px;
+      border:none;
+      border-radius:10px;
+      background:linear-gradient(135deg,#2563eb,#1d4ed8);
+      color:#fff;
+      cursor:pointer;
+      margin-top:10px;
+      margin-right:10px;
     }
 
-    .referral input {
-      width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      border: none;
-      margin: 15px 0;
+    .btn.secondary{
+      background:#0f172a;
+    }
+
+    .referral{
+      background:linear-gradient(135deg,#0f172a,#1e293b);
+      color:#fff;
+    }
+
+    .referral input{
+      width:100%;
+      padding:10px;
+      border-radius:8px;
+      border:none;
+      margin:15px 0;
     }
   </style>
 </head>
 
 <body>
 
-<!-- 🔄 LOADER -->
+<!-- LOADER -->
 <div id="loader">
   <div class="spinner"></div>
 </div>
@@ -170,7 +174,9 @@
     <a href="posttask.html"><span>📝</span><span>Post Task</span></a>
     <a href="deposit.html"><span>💰</span><span>Deposit</span></a>
     <a href="Adprofile.html"><span>👤</span><span>Profile</span></a>
-    <a href="#" onclick="logout()" style="color:#f87171;"><span>🚪</span><span>Logout</span></a>
+    <a href="#" onclick="logout()" style="color:#f87171;">
+      <span>🚪</span><span>Logout</span>
+    </a>
   </div>
 </div>
 
@@ -217,6 +223,9 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
+  const loader = document.getElementById("loader");
+  const main = document.getElementById("mainContent");
+
   onAuthStateChanged(auth, user => {
     if (!user) {
       location.href = "login.html";
@@ -227,38 +236,38 @@
 
     onSnapshot(userRef, snap => {
       if (!snap.exists()) {
-        signOut(auth);
-        location.href = "login.html";
+        alert("User record not found.");
         return;
       }
 
       const data = snap.data();
 
-      // 🔒 Advertiser-only access
-      if (data.model !== "Advertiser") {
-        alert("Unauthorized access");
-        signOut(auth);
-        location.href = "login.html";
+      // SAFE advertiser validation
+      if (!data.model || data.model.toLowerCase() !== "advertiser") {
+        alert("Unauthorized access. Advertiser account required.");
         return;
       }
 
       document.getElementById("welcomeText").textContent =
-        `Welcome, ${data.username}`;
+        `Welcome, ${data.username || "Advertiser"}`;
 
       document.getElementById("balance").textContent =
-        "₦" + (data.balance || 0).toLocaleString();
+        "₦" + Number(data.balance || 0).toLocaleString();
 
-      // ✅ SAME referral format as earners
       const baseURL = window.location.origin + "/?ref=";
-      document.getElementById("refLink").value = baseURL + data.username;
+      document.getElementById("refLink").value =
+        baseURL + (data.username || user.uid);
 
-      document.getElementById("loader").style.display = "none";
-      document.getElementById("mainContent").style.display = "block";
+      loader.style.display = "none";
+      main.style.display = "block";
     });
   });
 
   window.copyReferral = () => {
-    navigator.clipboard.writeText(refLink.value);
+    const input = document.getElementById("refLink");
+    input.select();
+    input.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(input.value);
     alert("Referral link copied!");
   };
 
