@@ -149,7 +149,6 @@
       margin: 10px 0;
     }
 
-    /* POPUP */
     .popup {
       position: fixed;
       top: 20px;
@@ -178,12 +177,6 @@
 <div class="popup" id="welcomePopup">
   <span class="close" onclick="closePopup()">✖</span>
   <p id="popupText"></p>
-  <p>
-    👉 WhatsApp:
-    <a href="https://chat.whatsapp.com/KG0U1mX9m8O9ZGSTbd8J3s" target="_blank">Join</a><br>
-    👉 Telegram:
-    <a href="https://t.me/glitz_withdraw" target="_blank">@glitz_withdraw</a>
-  </p>
 </div>
 
 <header>
@@ -197,15 +190,9 @@
 <div id="sideMenu" class="side-menu">
   <span class="close-btn" onclick="closeMenu()">&times;</span>
   <a href="earner.html">Dashboard</a>
-  <a href="activation.html">Activate</a>
   <a href="task2.html">Tasks</a>
   <a href="referral.html">Referral</a>
-  <a href="taskhistory.html">Past task</a>
-  <a href="supportlist.html">Support</a>
   <a href="withdraw.html">Withdraw</a>
-  <a href="profile.html">Profile</a>
-  <a href="history.html">History</a>
-  <a href="wallet.html">Bank Details</a>
   <a href="#" onclick="logout()" style="color:red;">Logout</a>
 </div>
 
@@ -229,17 +216,18 @@
 </div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-  import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-  import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+  import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
+  import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
+  /* ✅ NEW FIREBASE CONFIG */
   const firebaseConfig = {
-    apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
-    authDomain: "chiearnhub-5ba9e.firebaseapp.com",
-    projectId: "chiearnhub-5ba9e",
-    storageBucket: "chiearnhub-5ba9e.firebasestorage.app",
-    messagingSenderId: "332513744974",
-    appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
+    apiKey: "AIzaSyCqHY59fXbXWTOtki5cBT-qryPVNerzToM",
+    authDomain: "chiearnhubvercel.firebaseapp.com",
+    projectId: "chiearnhubvercel",
+    storageBucket: "chiearnhubvercel.firebasestorage.app",
+    messagingSenderId: "1069350970788",
+    appId: "1:1069350970788:web:b6fb81b6c397344d118d31"
   };
 
   const app = initializeApp(firebaseConfig);
@@ -248,12 +236,7 @@
 
   const currentUser = JSON.parse(localStorage.getItem("currentUser"));
 
-  if (!currentUser) {
-    alert("Please login to continue");
-    window.location.href = "login.html";
-  }
-
-  if (currentUser.model !== "Earner") {
+  if (!currentUser || currentUser.model !== "Earner") {
     alert("Unauthorized access");
     window.location.href = "login.html";
   }
@@ -264,39 +247,22 @@
     if (!snap.exists()) return;
 
     const data = snap.data();
-    const username = data.username || currentUser.username;
+    const username = data.username;
     const balance = data.balance || 0;
 
     document.getElementById("welcomeText").textContent = `Welcome, ${username}`;
     document.getElementById("balance").textContent = "₦" + balance.toLocaleString();
 
-    // ✅ SAME FORMAT AS CODE 1
     const baseURL = window.location.origin + "/?ref=";
     document.getElementById("refLink").value = baseURL + username;
 
-    // POPUP
     const popup = document.getElementById("welcomePopup");
-    const popupText = document.getElementById("popupText");
+    document.getElementById("popupText").innerHTML =
+      `Welcome <b>${username}</b>, dashboard loaded successfully.`;
 
-    popupText.innerHTML = `Welcome <b>${username}</b>, you can join our chat groups.`;
     popup.style.display = "block";
-
-    setTimeout(() => {
-      popup.style.display = "none";
-    }, 5000);
+    setTimeout(() => popup.style.display = "none", 4000);
   });
-
-  window.closePopup = () => {
-    document.getElementById("welcomePopup").style.display = "none";
-  };
-
-  window.openMenu = () => {
-    document.getElementById("sideMenu").style.width = "250px";
-  };
-
-  window.closeMenu = () => {
-    document.getElementById("sideMenu").style.width = "0";
-  };
 
   window.copyReferral = () => {
     navigator.clipboard.writeText(document.getElementById("refLink").value);
@@ -309,6 +275,10 @@
       window.location.href = "login.html";
     });
   };
+
+  window.openMenu = () => document.getElementById("sideMenu").style.width = "250px";
+  window.closeMenu = () => document.getElementById("sideMenu").style.width = "0";
+  window.closePopup = () => document.getElementById("welcomePopup").style.display = "none";
 </script>
 
 </body>
