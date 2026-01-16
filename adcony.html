@@ -1,194 +1,193 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Admin - Verify Tasks</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<!DOCTYPE html>  
+<html>  
+<head>  
+<meta charset="UTF-8">  
+<title>Admin - Verify Tasks</title>  
+<meta name="viewport" content="width=device-width, initial-scale=1">  
+  
+<style>  
+body{margin:0;background:#f4f7fa;font-family:Inter}  
+header{background:#fff;padding:15px 20px;font-weight:700;color:#0d6efd}  
+.container{max-width:1000px;margin:20px auto;padding:15px}  
+.card{  
+  background:#fff;  
+  padding:15px;  
+  border-radius:12px;  
+  margin-bottom:15px;  
+  box-shadow:0 2px 8px rgba(0,0,0,.05)  
+}  
+.meta{font-size:14px;color:#555;line-height:1.6}  
+.actions{display:flex;gap:10px;margin-top:10px}  
+button{  
+  padding:10px 16px;  
+  border:none;  
+  border-radius:8px;  
+  font-weight:600;  
+  cursor:pointer  
+}  
+.approve{background:#16a34a;color:#fff}  
+.reject{background:#dc2626;color:#fff}  
 
-<style>
-body{margin:0;background:#f4f7fa;font-family:Inter}
-header{background:#fff;padding:15px 20px;font-weight:700;color:#0d6efd}
-.container{max-width:1000px;margin:20px auto;padding:15px}
-.card{
-  background:#fff;
-  padding:15px;
-  border-radius:12px;
-  margin-bottom:15px;
-  box-shadow:0 2px 8px rgba(0,0,0,.05)
-}
-.meta{font-size:14px;color:#555;line-height:1.6}
-.actions{display:flex;gap:10px;margin-top:10px}
-button{
-  padding:10px 16px;
-  border:none;
-  border-radius:8px;
-  font-weight:600;
-  cursor:pointer
-}
-.approve{background:#16a34a;color:#fff}
-.reject{background:#dc2626;color:#fff}
-</style>
-</head>
+/* 🔹 Spinner */  
+#spinner{  
+  position:fixed;inset:0;background:rgba(255,255,255,.7);  
+  display:flex;align-items:center;justify-content:center;z-index:999;  
+}  
+.spinner{width:45px;height:45px;border:5px solid #ccc;border-top:5px solid #0d6efd;border-radius:50%;animation:spin 1s linear infinite}  
+@keyframes spin{to{transform:rotate(360deg)}}  
+</style>  
+</head>  
+  
+<body>  
+  
+<header>Admin – Task Approval</header>  
+<div id="spinner"><div class="spinner"></div></div>
+<div class="container" id="taskContainer">Loading...</div>  
+  
+<script type="module">  
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";  
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";  
+import {  
+  getFirestore, collection, query, where, onSnapshot,  
+  doc, getDoc, updateDoc, addDoc, serverTimestamp  
+} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";  
+  
+/* 🔥 FIREBASE CONFIG */  
+const firebaseConfig = {  
+  apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",  
+  authDomain: "chiearnhub-5ba9e.firebaseapp.com",  
+  projectId: "chiearnhub-5ba9e",  
+  storageBucket: "chiearnhub-5ba9e.firebasestorage.app",  
+  messagingSenderId: "332513744974",  
+  appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"  
+};  
+  
+const app = initializeApp(firebaseConfig);  
+const auth = getAuth(app);  
+const db = getFirestore(app);  
 
-<body>
+const container = document.getElementById("taskContainer");  
+const spinner = document.getElementById("spinner");  
+const hideSpinner = () => spinner.style.display = "none";  
 
-<header>Admin – Task Approval</header>
-<div class="container" id="taskContainer">Loading...</div>
+/* 🔹 AUTH CHECK */  
+onAuthStateChanged(auth, async (user)=>{  
+  if(!user){  
+    location.href = "login.html";  
+    return;  
+  }  
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-import {
-  getFirestore, collection, query, where, onSnapshot,
-  doc, getDoc, updateDoc, addDoc, serverTimestamp
-} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+  const snap = await getDoc(doc(db,"users",user.uid));  
+  if(!snap.exists() || snap.data().model !== "Admin"){  
+    alert("Unauthorized");  
+    await signOut(auth);
+    location.href = "login.html";  
+    return;
+  }  
 
-/* 🔥 FIREBASE CONFIG */
-const firebaseConfig = {
-  apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
-  authDomain: "chiearnhub-5ba9e.firebaseapp.com",
-  projectId: "chiearnhub-5ba9e",
-  storageBucket: "chiearnhub-5ba9e.firebasestorage.app",
-  messagingSenderId: "332513744974",
-  appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
-};
+  hideSpinner();
+  loadTasks();  
+});  
+  
+/* 🔹 LOAD PENDING TASKS */  
+function loadTasks(){  
+  const q = query(collection(db,"tasks"), where("status","==","pending"));  
+  
+  onSnapshot(q, (snap)=>{  
+    container.innerHTML = "";  
+  
+    if(snap.empty){  
+      container.innerHTML = "<p>No pending tasks.</p>";  
+      return;  
+    }  
+  
+    snap.forEach(docSnap=>{  
+      const t = docSnap.data();  
+      const id = docSnap.id;  
+  
+      const div = document.createElement("div");  
+      div.className = "card";  
+      div.innerHTML = `  
+        <h3>${t.platform} – ${t.type}</h3>  
+        <div class="meta">  
+          <b>Poster UID:</b> ${t.userId}<br>  
+          <b>Advertiser Price:</b> ₦${t.price}<br>  
+          <b>People:</b> ${t.quantity}<br>  
+          <b>Total:</b> ₦${t.total}<br>  
+          <b>Remaining:</b> ${t.remaining}<br>  
+          <b>Proof:</b> ${t.proofTitle}<br>  
+          <b>Link:</b> <a href="${t.link}" target="_blank">${t.link}</a>  
+        </div>  
+        <div class="actions">  
+          <button class="approve">Approve</button>  
+          <button class="reject">Reject</button>  
+        </div>  
+      `;  
+  
+      div.querySelector(".approve").onclick = ()=>approveTask(id, t);  
+      div.querySelector(".reject").onclick = ()=>rejectTask(id, t);  
+  
+      container.appendChild(div);  
+    });  
+  });  
+}  
+  
+/* ===== APPROVE TASK ===== */  
+async function approveTask(taskId, task){  
+  if(!confirm("Approve this task?")) return;  
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+  try{  
+    await addDoc(collection(db,"availabletasks"),{  
+      sourceTaskId: taskId,  
+      posterId: task.userId,  
+      platform: task.platform,  
+      type: task.type,  
+      link: task.link,  
+      proofTitle: task.proofTitle,  
+      advertiserPrice: task.price,  
+      earnerPrice: Math.floor(task.price*0.6),  
+      quantity: task.quantity,  
+      remaining: task.remaining,  
+      status:"active",  
+      createdAt: serverTimestamp()  
+    });  
+  
+    await updateDoc(doc(db,"tasks",taskId),{  
+      status:"approved",  
+      approvedAt: serverTimestamp()  
+    });  
 
-const container = document.getElementById("taskContainer");
+    alert("✅ Task approved and published");  
+  }catch(err){  
+    alert("❌ Error: " + err.message);  
+  }  
+}  
+  
+/* ===== REJECT TASK ===== */  
+async function rejectTask(taskId, task){  
+  const reason = prompt("Reason for rejection?");  
+  if(!reason) return;  
 
-/* ===== EARNER PRICE TABLE (YOU CAN CHANGE LATER) ===== */
-const earnerPrices = {
-  Gmail: { "Email Review": 15, "Email Send": 10 },
-  WhatsApp: { "Group Join": 20, "Channel Follow": 15, "Contact Save": 10, "Status Posting": 25 },
-  Telegram: { "Group Join": 18, "Channel Follow": 12 },
-  Instagram: { "Follow": 20, "Like": 10, "Comment": 18 },
-  Facebook: { "Like Page": 15, "Follow": 15 },
-  Twitter: { "Follow": 12, "Retweet": 10 },
-  TikTok: { "Follow": 18, "Like": 10 },
-  YouTube: { "Subscribe": 20, "Like Video": 10 },
-  Website: { "Visit Website": 10, "Sign Up": 25 }
-};
+  try{  
+    const userRef = doc(db,"users",task.userId);  
+    const userSnap = await getDoc(userRef);  
+    if(userSnap.exists()){  
+      const bal = userSnap.data().balance || 0;  
+      await updateDoc(userRef,{ balance: bal + task.total });  
+    }  
 
-/* ===== AUTH CHECK ===== */
-onAuthStateChanged(auth, async (user)=>{
-  if(!user) return location.href="login.html";
+    await updateDoc(doc(db,"tasks",taskId),{  
+      status:"rejected",  
+      rejectionReason: reason,  
+      rejectedAt: serverTimestamp()  
+    });  
 
-  const snap = await getDoc(doc(db,"users",user.uid));
-  if(!snap.exists() || snap.data().model !== "Admin"){
-    alert("Unauthorized");
-    return location.href="login.html";
-  }
-
-  loadTasks();
-});
-
-/* ===== LOAD PENDING TASKS ===== */
-function loadTasks(){
-  const q = query(collection(db,"tasks"), where("status","==","pending"));
-
-  onSnapshot(q, (snap)=>{
-    container.innerHTML = "";
-
-    if(snap.empty){
-      container.innerHTML = "<p>No pending tasks.</p>";
-      return;
-    }
-
-    snap.forEach(docSnap=>{
-      const t = docSnap.data();
-      const id = docSnap.id;
-
-      const div = document.createElement("div");
-      div.className = "card";
-      div.innerHTML = `
-        <h3>${t.platform} – ${t.type}</h3>
-        <div class="meta">
-          <b>Poster UID:</b> ${t.userId}<br>
-          <b>Advertiser Price:</b> ₦${t.price}<br>
-          <b>People:</b> ${t.quantity}<br>
-          <b>Total:</b> ₦${t.total}<br>
-          <b>Remaining:</b> ${t.remaining}<br>
-          <b>Proof:</b> ${t.proofTitle}<br>
-          <b>Link:</b> <a href="${t.link}" target="_blank">${t.link}</a>
-        </div>
-        <div class="actions">
-          <button class="approve">Approve</button>
-          <button class="reject">Reject</button>
-        </div>
-      `;
-
-      div.querySelector(".approve").onclick = ()=>approveTask(id, t);
-      div.querySelector(".reject").onclick = ()=>rejectTask(id, t);
-
-      container.appendChild(div);
-    });
-  });
-}
-
-/* ===== APPROVE TASK ===== */
-async function approveTask(taskId, task){
-  if(!confirm("Approve this task?")) return;
-
-  // 🔥 Get earner price from table
-  const newPrice =
-    earnerPrices?.[task.platform]?.[task.type] || Math.floor(task.price * 0.6);
-
-  // 1️⃣ Create in availabletasks
-  await addDoc(collection(db,"availabletasks"),{
-    sourceTaskId: taskId,
-    posterId: task.userId,
-    platform: task.platform,
-    type: task.type,
-    link: task.link,
-    proofTitle: task.proofTitle,
-
-    advertiserPrice: task.price,  // what advertiser paid per task
-    earnerPrice: newPrice,         // what earner gets per task
-
-    quantity: task.quantity,
-    remaining: task.remaining,
-
-    status: "active",
-    createdAt: serverTimestamp()
-  });
-
-  // 2️⃣ Update original task
-  await updateDoc(doc(db,"tasks",taskId),{
-    status:"approved",
-    approvedAt: serverTimestamp()
-  });
-
-  alert("✅ Task approved and published");
-}
-
-/* ===== REJECT TASK ===== */
-async function rejectTask(taskId, task){
-  const reason = prompt("Reason for rejection?");
-  if(!reason) return;
-
-  // 1️⃣ Refund advertiser
-  const userRef = doc(db,"users",task.userId);
-  const userSnap = await getDoc(userRef);
-  if(userSnap.exists()){
-    const bal = userSnap.data().balance || 0;
-    await updateDoc(userRef,{
-      balance: bal + task.total
-    });
-  }
-
-  // 2️⃣ Update task
-  await updateDoc(doc(db,"tasks",taskId),{
-    status:"rejected",
-    rejectionReason: reason,
-    rejectedAt: serverTimestamp()
-  });
-
-  alert("❌ Task rejected and refunded");
-}
-</script>
-
-</body>
+    alert("❌ Task rejected and refunded");  
+  }catch(err){  
+    alert("❌ Error: " + err.message);  
+  }  
+}  
+</script>  
+  
+</body>  
 </html>
