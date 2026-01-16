@@ -58,7 +58,6 @@ body{display:flex;background:#f2f5fb;min-height:100vh}
 .card h3{font-size:16px;color:#475569}
 .card p{font-size:28px;font-weight:700}
 
-/* SPINNER */
 #spinner{
   position:fixed;inset:0;
   background:rgba(255,255,255,.7);
@@ -127,48 +126,53 @@ const db = getFirestore(app);
 const spinner = document.getElementById("spinner");
 const hideSpinner = () => spinner.style.display = "none";
 
-/* 🔐 AUTH FLOW (FIXED) */
-onAuthStateChanged(auth, async user => {
+/* 🔐 SAFE AUTH FLOW */
+onAuthStateChanged(auth, async (user) => {
   if (!user) {
-    localStorage.removeItem("currentUser");
     location.href = "login.html";
     return;
   }
 
-  // Restore session safely
-  const stored = JSON.parse(localStorage.getItem("currentUser"));
-  if (!stored || stored.uid !== user.uid) {
-    localStorage.setItem(
-      "currentUser",
-      JSON.stringify({ uid: user.uid, email: user.email })
-    );
+  try {
+    const userRef = doc(db, "users", user.uid);
+    const snap = await getDoc(userRef);
+
+    if (!snap.exists()) {
+      alert("Account record missing. Contact support.");
+      hideSpinner();
+      return;
+    }
+
+    const role = (snap.data().model || "").toLowerCase();
+
+    if (role !== "admin") {
+      alert("Unauthorized access");
+      location.href = "login.html";
+      return;
+    }
+
+    adminWelcome.innerText =
+      `Welcome, ${snap.data().username || user.email}`;
+
+    hideSpinner();
+
+  } catch (err) {
+    console.error("Auth check failed:", err);
+    alert("Network error. Please refresh.");
+    hideSpinner();
   }
-
-  const snap = await getDoc(doc(db, "users", user.uid));
-  if (!snap.exists() || snap.data().model !== "Admin") {
-    alert("Unauthorized access");
-    await signOut(auth);
-    localStorage.removeItem("currentUser");
-    location.href = "login.html";
-    return;
-  }
-
-  adminWelcome.innerText =
-    `Welcome, ${snap.data().username || snap.data().email}`;
-
-  hideSpinner();
 });
 
 /* 📊 LIVE USER COUNTS */
-onSnapshot(collection(db, "users"), snap => {
+onSnapshot(collection(db, "users"), (snap) => {
   let total=0, earners=0, advertisers=0, admins=0;
 
-  snap.forEach(d => {
+  snap.forEach(doc => {
     total++;
-    const role = d.data().model;
-    if (role === "Earner") earners++;
-    else if (role === "Advertiser") advertisers++;
-    else if (role === "Admin") admins++;
+    const role = (doc.data().model || "").toLowerCase();
+    if (role === "earner") earners++;
+    else if (role === "advertiser") advertisers++;
+    else if (role === "admin") admins++;
   });
 
   totalUsers.textContent = total;
@@ -183,10 +187,9 @@ window.toggleSidebar = () => {
   main.classList.toggle("shifted");
 };
 
-/* LOGOUT */
+/* LOGOUT (MANUAL ONLY) */
 window.logout = async () => {
   await signOut(auth);
-  localStorage.removeItem("currentUser");
   location.href = "login.html";
 };
 </script>
