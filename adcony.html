@@ -1,51 +1,75 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Admin - Verify Tasks</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin - Verify Tasks</title>
 
 <style>
-body{margin:0;background:#f4f7fa;font-family:Inter}
-header{background:#fff;padding:15px 20px;font-weight:700;color:#0d6efd}
-.container{max-width:1000px;margin:20px auto;padding:15px}
-.card{
-  background:#fff;
-  padding:15px;
-  border-radius:12px;
-  margin-bottom:15px;
-  box-shadow:0 2px 8px rgba(0,0,0,.05)
+body {
+  margin: 0;
+  font-family: Inter, sans-serif;
+  background: #f4f7fa;
 }
-.meta{font-size:14px;color:#555;line-height:1.6}
-.actions{display:flex;gap:10px;margin-top:10px}
-button{
-  padding:10px 16px;
-  border:none;
-  border-radius:8px;
-  font-weight:600;
-  cursor:pointer
+header {
+  background: #fff;
+  padding: 15px 20px;
+  font-weight: 700;
+  color: #0d6efd;
 }
-.approve{background:#16a34a;color:#fff}
-.reject{background:#dc2626;color:#fff}
+.container {
+  max-width: 1000px;
+  margin: 20px auto;
+  padding: 15px;
+}
+.card {
+  background: #fff;
+  padding: 15px;
+  border-radius: 12px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.05);
+}
+.meta {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.6;
+}
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+button {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.approve { background: #16a34a; color: #fff; }
+.reject { background: #dc2626; color: #fff; }
 
-/* 🔹 Spinner */
-#spinner{
-  position:fixed;inset:0;
-  background:rgba(255,255,255,.7);
-  display:flex;align-items:center;justify-content:center;
-  z-index:999
+/* Spinner overlay */
+#spinner {
+  position: fixed;
+  inset: 0;
+  background: rgba(255,255,255,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
 }
-.spinner{
-  width:45px;height:45px;
-  border:5px solid #ccc;
-  border-top:5px solid #0d6efd;
-  border-radius:50%;
-  animation:spin 1s linear infinite
+.spinner {
+  width: 45px;
+  height: 45px;
+  border: 5px solid #ccc;
+  border-top: 5px solid #0d6efd;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
-@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
-
 <body>
 
 <header>Admin – Task Approval</header>
@@ -75,55 +99,52 @@ const container = document.getElementById("taskContainer");
 const spinner = document.getElementById("spinner");
 const hideSpinner = () => spinner.style.display = "none";
 
-/* ===== HELPER: Check Admin in Firestore ===== */
+/* ===== HELPER: Check if user is admin ===== */
 async function checkAdmin(uid) {
-  const snap = await getDoc(doc(db,"users",uid));
-  if(!snap.exists() || snap.data().model !== "Admin") return false;
-  return snap.data();
+  try {
+    const snap = await getDoc(doc(db, "users", uid));
+    if (!snap.exists() || snap.data().model !== "Admin") return null;
+    return snap.data();
+  } catch (err) {
+    console.error("Error checking admin:", err);
+    return null;
+  }
 }
 
-/* ===== AUTH FLOW (with localStorage) ===== */
-async function initAdmin() {
-  let stored = localStorage.getItem("currentUser");
-  if(stored) stored = JSON.parse(stored);
+/* ===== AUTH FLOW ===== */
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    localStorage.removeItem("currentUser");
+    return location.href = "login.html";
+  }
 
-  onAuthStateChanged(auth, async (user)=>{
-    if(!user){
-      localStorage.removeItem("currentUser");
-      return location.href = "login.html";
-    }
+  // store current user safely
+  localStorage.setItem("currentUser", JSON.stringify({ uid: user.uid, email: user.email }));
 
-    // restore session from localStorage
-    if(!stored || stored.uid !== user.uid){
-      localStorage.setItem("currentUser", JSON.stringify({uid:user.uid,email:user.email}));
-      stored = {uid:user.uid,email:user.email};
-    }
+  const adminData = await checkAdmin(user.uid);
+  if (!adminData) {
+    alert("Unauthorized access");
+    localStorage.removeItem("currentUser");
+    await signOut(auth);
+    return location.href = "login.html";
+  }
 
-    const adminData = await checkAdmin(user.uid);
-    if(!adminData){
-      alert("Unauthorized access");
-      await signOut(auth);
-      localStorage.removeItem("currentUser");
-      return location.href="login.html";
-    }
+  hideSpinner();
+  loadTasks();
+});
 
-    hideSpinner();
-    loadTasks();
-  });
-}
-
-/* ===== PENDING TASKS ===== */
-function loadTasks(){
-  const q = query(collection(db,"tasks"), where("status","==","pending"));
-  onSnapshot(q, snap=>{
+/* ===== LOAD PENDING TASKS ===== */
+function loadTasks() {
+  const q = query(collection(db, "tasks"), where("status", "==", "pending"));
+  onSnapshot(q, snap => {
     container.innerHTML = "";
 
-    if(snap.empty){
+    if (snap.empty) {
       container.innerHTML = "<p>No pending tasks.</p>";
       return;
     }
 
-    snap.forEach(docSnap=>{
+    snap.forEach(docSnap => {
       const t = docSnap.data();
       const id = docSnap.id;
 
@@ -145,9 +166,8 @@ function loadTasks(){
           <button class="reject">Reject</button>
         </div>
       `;
-
-      div.querySelector(".approve").onclick = ()=>approveTask(id,t);
-      div.querySelector(".reject").onclick = ()=>rejectTask(id,t);
+      div.querySelector(".approve").onclick = () => approveTask(id, t);
+      div.querySelector(".reject").onclick = () => rejectTask(id, t);
 
       container.appendChild(div);
     });
@@ -155,24 +175,25 @@ function loadTasks(){
 }
 
 /* ===== APPROVE TASK ===== */
-const earnerPrices = { // example table
-  Gmail:{ "Email Review":15,"Email Send":10 },
-  WhatsApp:{"Group Join":20,"Channel Follow":15,"Contact Save":10,"Status Posting":25},
-  Telegram:{"Group Join":18,"Channel Follow":12},
-  Instagram:{"Follow":20,"Like":10,"Comment":18},
-  Facebook:{"Like Page":15,"Follow":15},
-  Twitter:{"Follow":12,"Retweet":10},
-  TikTok:{"Follow":18,"Like":10},
-  YouTube:{"Subscribe":20,"Like Video":10},
-  Website:{"Visit Website":10,"Sign Up":25}
+const earnerPrices = {
+  Gmail: { "Email Review": 15, "Email Send": 10 },
+  WhatsApp: { "Group Join": 20, "Channel Follow": 15, "Contact Save": 10, "Status Posting": 25 },
+  Telegram: { "Group Join": 18, "Channel Follow": 12 },
+  Instagram: { "Follow": 20, "Like": 10, "Comment": 18 },
+  Facebook: { "Like Page": 15, "Follow": 15 },
+  Twitter: { "Follow": 12, "Retweet": 10 },
+  TikTok: { "Follow": 18, "Like": 10 },
+  YouTube: { "Subscribe": 20, "Like Video": 10 },
+  Website: { "Visit Website": 10, "Sign Up": 25 }
 };
 
-async function approveTask(taskId, task){
-  if(!confirm("Approve this task?")) return;
+async function approveTask(taskId, task) {
+  if (!confirm("Approve this task?")) return;
 
   const newPrice = earnerPrices?.[task.platform]?.[task.type] || Math.floor(task.price * 0.6);
 
-  await addDoc(collection(db,"availabletasks"),{
+  // create available task (admin only)
+  await addDoc(collection(db, "availabletasks"), {
     sourceTaskId: taskId,
     posterId: task.userId,
     platform: task.platform,
@@ -183,12 +204,13 @@ async function approveTask(taskId, task){
     earnerPrice: newPrice,
     quantity: task.quantity,
     remaining: task.remaining,
-    status:"active",
+    status: "active",
     createdAt: serverTimestamp()
   });
 
-  await updateDoc(doc(db,"tasks",taskId),{
-    status:"approved",
+  // mark original task as approved
+  await updateDoc(doc(db, "tasks", taskId), {
+    status: "approved",
     approvedAt: serverTimestamp()
   });
 
@@ -196,28 +218,25 @@ async function approveTask(taskId, task){
 }
 
 /* ===== REJECT TASK ===== */
-async function rejectTask(taskId, task){
+async function rejectTask(taskId, task) {
   const reason = prompt("Reason for rejection?");
-  if(!reason) return;
+  if (!reason) return;
 
-  const userRef = doc(db,"users",task.userId);
+  const userRef = doc(db, "users", task.userId);
   const userSnap = await getDoc(userRef);
-  if(userSnap.exists()){
+  if (userSnap.exists()) {
     const bal = userSnap.data().balance || 0;
-    await updateDoc(userRef,{ balance: bal + task.total });
+    await updateDoc(userRef, { balance: bal + task.total });
   }
 
-  await updateDoc(doc(db,"tasks",taskId),{
-    status:"rejected",
+  await updateDoc(doc(db, "tasks", taskId), {
+    status: "rejected",
     rejectionReason: reason,
     rejectedAt: serverTimestamp()
   });
 
   alert("❌ Task rejected and refunded");
 }
-
-/* ===== INIT ===== */
-initAdmin();
 </script>
 
 </body>
