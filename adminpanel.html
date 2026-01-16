@@ -9,6 +9,7 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Poppins,sans-serif}
 body{display:flex;background:#f2f5fb;min-height:100vh}
+
 .sidebar{
   width:260px;background:#1e293b;color:#fff;
   position:fixed;left:-260px;top:0;height:100%;
@@ -21,38 +22,63 @@ body{display:flex;background:#f2f5fb;min-height:100vh}
   text-decoration:none;border-radius:6px;margin-bottom:8px
 }
 .sidebar a:hover{background:#334155}
+
 .logout-btn{
   margin-top:20px;padding:12px;background:#ef4444;
   color:#fff;border:none;width:100%;
   border-radius:6px;cursor:pointer
 }
+
 .main{width:100%;padding:30px;transition:.3s}
 .main.shifted{margin-left:260px}
+
 .top-bar{
   display:flex;justify-content:space-between;
   align-items:center;margin-bottom:25px
 }
+
 .hamburger{
   font-size:24px;cursor:pointer;
   background:#fff;padding:8px 12px;
   border-radius:6px;
   box-shadow:0 2px 8px rgba(0,0,0,.1)
 }
+
 .cards{
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
   gap:20px
 }
+
 .card{
   background:#fff;padding:20px;border-radius:12px;
   box-shadow:0 4px 12px rgba(0,0,0,.06)
 }
+
 .card h3{font-size:16px;color:#475569}
 .card p{font-size:28px;font-weight:700}
+
+/* SPINNER */
+#spinner{
+  position:fixed;inset:0;
+  background:rgba(255,255,255,.7);
+  display:flex;align-items:center;justify-content:center;
+  z-index:999
+}
+.spinner{
+  width:45px;height:45px;
+  border:5px solid #ccc;
+  border-top:5px solid #0d6efd;
+  border-radius:50%;
+  animation:spin 1s linear infinite
+}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 
 <body>
+
+<div id="spinner"><div class="spinner"></div></div>
 
 <div class="sidebar" id="sidebar">
   <h2>Admin Panel</h2>
@@ -98,33 +124,39 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-/* 🔐 CHECK LOCAL STORAGE FIRST */
-const storedUser = JSON.parse(localStorage.getItem("currentUser"));
+const spinner = document.getElementById("spinner");
+const hideSpinner = () => spinner.style.display = "none";
 
-if (!storedUser || !storedUser.uid) {
-  alert("Please login");
-  location.href = "login.html";
-}
-
-/* 🔐 AUTH + ADMIN CHECK */
+/* 🔐 AUTH FLOW (FIXED) */
 onAuthStateChanged(auth, async user => {
-  if (!user || user.uid !== storedUser.uid) {
-    alert("Session expired");
+  if (!user) {
     localStorage.removeItem("currentUser");
     location.href = "login.html";
     return;
   }
 
-  // Fetch user data from Firestore
+  // Restore session safely
+  const stored = JSON.parse(localStorage.getItem("currentUser"));
+  if (!stored || stored.uid !== user.uid) {
+    localStorage.setItem(
+      "currentUser",
+      JSON.stringify({ uid: user.uid, email: user.email })
+    );
+  }
+
   const snap = await getDoc(doc(db, "users", user.uid));
   if (!snap.exists() || snap.data().model !== "Admin") {
-    alert("Unauthorized");
+    alert("Unauthorized access");
+    await signOut(auth);
     localStorage.removeItem("currentUser");
     location.href = "login.html";
     return;
   }
 
-  adminWelcome.innerText = `Welcome, ${snap.data().username || snap.data().email}`;
+  adminWelcome.innerText =
+    `Welcome, ${snap.data().username || snap.data().email}`;
+
+  hideSpinner();
 });
 
 /* 📊 LIVE USER COUNTS */
@@ -139,10 +171,10 @@ onSnapshot(collection(db, "users"), snap => {
     else if (role === "Admin") admins++;
   });
 
-  totalUsers.innerText = total;
-  earnersCount.innerText = earners;
-  advertisersCount.innerText = advertisers;
-  adminsCount.innerText = admins;
+  totalUsers.textContent = total;
+  earnersCount.textContent = earners;
+  advertisersCount.textContent = advertisers;
+  adminsCount.textContent = admins;
 });
 
 /* UI */
