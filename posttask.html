@@ -88,6 +88,21 @@ button.danger{background:#dc2626}
   animation:spin 1s linear infinite;
 }
 
+#authSpinner{
+  position:fixed;
+  inset:0;
+  background:rgba(255,255,255,.7);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+}
+
+#authSpinner .spinner{
+  width:45px;
+  height:45px;
+}
+
 @keyframes spin{
   to{transform:rotate(360deg)}
 }
@@ -95,6 +110,11 @@ button.danger{background:#dc2626}
 </head>
 
 <body>
+
+<!-- 🔐 GLOBAL AUTH SPINNER -->
+<div id="authSpinner">
+  <div class="spinner"></div>
+</div>
 
 <header>
   <span>Post a Task</span>
@@ -119,7 +139,7 @@ button.danger{background:#dc2626}
 
   <label>Proof Title</label>
   <input type="text" id="proofTitle">
-  
+
   <label>Task Guide</label>
   <input type="text" id="taskguide">
 
@@ -138,52 +158,54 @@ button.danger{background:#dc2626}
   <div class="actions" id="actions">
     <button class="secondary" onclick="location.href='advertiser.html'">Home</button>
     <button class="secondary" onclick="location.href='deposit.html'">Deposit</button>
-    <button class="danger" onclick="location.href='posttask.html'">Cancel</button>
+    <button class="danger" onclick="location.href='advertiser.html'">Cancel</button>
     <button id="submitBtn" onclick="submitTask()">Proceed</button>
   </div>
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, updateDoc,
   collection, addDoc, serverTimestamp, onSnapshot
-} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-/* 🔥 FIREBASE CONFIG */
+/* ✅ SAME FIREBASE PROJECT AS LOGIN & ADMIN PANEL */
 const firebaseConfig = {
-  apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
-  authDomain: "chiearnhub-5ba9e.firebaseapp.com",
-  projectId: "chiearnhub-5ba9e",
-  storageBucket: "chiearnhub-5ba9e.firebasestorage.app",
-  messagingSenderId: "332513744974",
-  appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
+  apiKey: "AIzaSyCqHY59fXbXWTOtki5cBT-qryPVNerzToM",
+  authDomain: "chiearnhubvercel.firebaseapp.com",
+  projectId: "chiearnhubvercel",
+  storageBucket: "chiearnhubvercel.firebasestorage.app",
+  messagingSenderId: "1069350970788",
+  appId: "1:1069350970788:web:b6fb81b6c397344d118d31"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+const authSpinner = document.getElementById("authSpinner");
+
 let currentUser;
 let userData = {};
 let selectedPrice = 0;
 
-/* ===== TASK TYPES (EXACT AS YOU SENT) ===== */
-const taskTypes = { /* 👇 YOUR FULL OBJECT */ 
-WhatsApp:[{n:"Group Join/channel",p:30},{n:"Status Post",p:40},{n:"Channel Join and Like",p:40},{n:"Channel React No Join",p:15},{n:"Message Sending",p:40}],
-Telegram:[{n:"Group Join",p:20},{n:"Channel Follow",p:20},{n:"Simple Bot",p:35},{n:"Complex Bot",p:50},{n:"Web Bot",p:50}],
-Instagram:[{n:"Follow",p:30},{n:"Post Like",p:7},{n:"Comment",p:8},{n:"Post View",p:6},{n:"Live Engagement",p:20}],
-Facebook:[{n:"Like Page / Follow",p:15},{n:"Group Join",p:30},{n:"Post Like",p:7},{n:"Comment",p:20},{n:"Post Share",p:15},{n:"Video View",p:10},{n:"Post On Facebook",p:20},{n:"Page / Business Review",p:20}],
-Twitter:[{n:"Follow",p:15},{n:"Retweet",p:15},{n:"Comment",p:10},{n:"Like",p:8},{n:"Vote",p:20},{n:"Post On X",p:30}],
-TikTok:[{n:"Follow",p:15},{n:"Like",p:8},{n:"Comment",p:9},{n:"Video View",p:20},{n:"Repost",p:20},{n:"Add To Favourite",p:10},{n:"Use Sound",p:50}],
-YouTube:[{n:"Subscribe",p:25},{n:"Like Video",p:5},{n:"Comment",p:12},{n:"Video View",p:20},{n:"Video Share",p:20}],
-Website:[{n:"Interact With Website",p:15},{n:"Simple Sign Up",p:35},{n:"Blog Comment",p:15},{n:"Review",p:20},{n:"Complex Sign Up",p:50}],
-Gmail:[{n:"Email Creation",p:70},{n:"Email Sell",p:100}],
-Audiomack:[{n:"Stream Music",p:35},{n:"Music Comment",p:15},{n:"Music Like",p:10},{n:"Add To Favourite",p:15},{n:"Page Follow",p:20}],
-Boomplay:[{n:"Stream Music",p:35},{n:"Music Comment",p:15},{n:"Music Like",p:10},{n:"Add To Favourite",p:15},{n:"Page Follow",p:20}],
-Spotify:[{n:"Stream Music",p:40},{n:"Music Like",p:25},{n:"Add To Playlist",p:25},{n:"Page Follow",p:20}],
-Threads:[{n:"Post Like",p:19},{n:"Comment",p:15},{n:"Follow",p:15},{n:"Repost",p:20}]
+/* ===== TASK TYPES ===== */
+const taskTypes = {
+  WhatsApp:[{n:"Group Join/channel",p:30},{n:"Status Post",p:40},{n:"Channel Join and Like",p:40},{n:"Channel React No Join",p:15},{n:"Message Sending",p:40}],
+  Telegram:[{n:"Group Join",p:20},{n:"Channel Follow",p:20},{n:"Simple Bot",p:35},{n:"Complex Bot",p:50},{n:"Web Bot",p:50}],
+  Instagram:[{n:"Follow",p:30},{n:"Post Like",p:7},{n:"Comment",p:8},{n:"Post View",p:6},{n:"Live Engagement",p:20}],
+  Facebook:[{n:"Like Page / Follow",p:15},{n:"Group Join",p:30},{n:"Post Like",p:7},{n:"Comment",p:20},{n:"Post Share",p:15},{n:"Video View",p:10},{n:"Post On Facebook",p:20},{n:"Page / Business Review",p:20}],
+  Twitter:[{n:"Follow",p:15},{n:"Retweet",p:15},{n:"Comment",p:10},{n:"Like",p:8},{n:"Vote",p:20},{n:"Post On X",p:30}],
+  TikTok:[{n:"Follow",p:15},{n:"Like",p:8},{n:"Comment",p:9},{n:"Video View",p:20},{n:"Repost",p:20},{n:"Add To Favourite",p:10},{n:"Use Sound",p:50}],
+  YouTube:[{n:"Subscribe",p:25},{n:"Like Video",p:5},{n:"Comment",p:12},{n:"Video View",p:20},{n:"Video Share",p:20}],
+  Website:[{n:"Interact With Website",p:15},{n:"Simple Sign Up",p:35},{n:"Blog Comment",p:15},{n:"Review",p:20},{n:"Complex Sign Up",p:50}],
+  Gmail:[{n:"Email Creation",p:70},{n:"Email Sell",p:100}],
+  Audiomack:[{n:"Stream Music",p:35},{n:"Music Comment",p:15},{n:"Music Like",p:10},{n:"Add To Favourite",p:15},{n:"Page Follow",p:20}],
+  Boomplay:[{n:"Stream Music",p:35},{n:"Music Comment",p:15},{n:"Music Like",p:10},{n:"Add To Favourite",p:15},{n:"Page Follow",p:20}],
+  Spotify:[{n:"Stream Music",p:40},{n:"Music Like",p:25},{n:"Add To Playlist",p:25},{n:"Page Follow",p:20}],
+  Threads:[{n:"Post Like",p:19},{n:"Comment",p:15},{n:"Follow",p:15},{n:"Repost",p:20}]
 };
 
 /* ===== INIT PLATFORM ===== */
@@ -215,52 +237,64 @@ window.calculateTotal = () => {
   totalBox.textContent = a >= 10 ? `Total: ₦${a * selectedPrice}` : "Total: ₦0";
 };
 
-/* ===== AUTH ===== */
+/* 🔐 AUTH (ADMINPANEL PATTERN) */
 onAuthStateChanged(auth, async (user) => {
   if (!user) return location.href = "login.html";
 
-  currentUser = user;
-  const snap = await getDoc(doc(db, "users", user.uid));
-  if (!snap.exists() || snap.data().model !== "Advertiser") {
-    alert("Unauthorized access");
-    return location.href = "login.html";
-  }
-
-  userData = snap.data();
-
-  onSnapshot(doc(db,"users",user.uid), s=>{
-    document.getElementById("balance").textContent =
-      "₦" + (s.data().balance || 0).toLocaleString();
-    userData.balance = s.data().balance || 0;
-  });
-});
-
-/* ===== SUBMIT ===== */
-window.submitTask = async () => {
-  const submitBtn = document.getElementById("submitBtn");
-  const loader = document.getElementById("loader");
-  const actions = document.getElementById("actions");
-
-  try{
-    const qty = Number(amount.value);
-    const total = qty * selectedPrice;
-
-    if (qty < 10 || !platform.value || !type.value || !link.value || !proofTitle.value) {
-      alert("Complete all fields correctly");
+  try {
+    const snap = await getDoc(doc(db, "users", user.uid));
+    if (!snap.exists()) {
+      alert("Account record missing");
+      authSpinner.style.display = "none";
       return;
     }
 
-    if ((userData.balance || 0) < total) {
-      alert("Insufficient balance");
-      return location.href = "deposit.html";
+    if ((snap.data().model || "").toLowerCase() !== "advertiser") {
+      alert("Unauthorized access");
+      location.href = "login.html";
+      return;
     }
 
-    // 🔄 SHOW LOADER
-    actions.style.display = "none";
-    loader.style.display = "block";
+    currentUser = user;
+    userData = snap.data();
 
-    const userRef = doc(db,"users",currentUser.uid);
-    await updateDoc(userRef,{ balance: userData.balance - total });
+    onSnapshot(doc(db,"users",user.uid), s=>{
+      document.getElementById("balance").textContent =
+        "₦" + (s.data().balance || 0).toLocaleString();
+      userData.balance = s.data().balance || 0;
+    });
+
+    authSpinner.style.display = "none";
+
+  } catch (e) {
+    alert("Network error. Refresh page.");
+    authSpinner.style.display = "none";
+  }
+});
+
+/* ===== SUBMIT TASK ===== */
+window.submitTask = async () => {
+  const qty = Number(amount.value);
+  const total = qty * selectedPrice;
+
+  if (qty < 10 || !platform.value || !type.value || !link.value || !proofTitle.value) {
+    alert("Complete all fields correctly");
+    return;
+  }
+
+  if ((userData.balance || 0) < total) {
+    alert("Insufficient balance");
+    location.href = "deposit.html";
+    return;
+  }
+
+  actions.style.display = "none";
+  loader.style.display = "block";
+
+  try {
+    await updateDoc(doc(db,"users",currentUser.uid),{
+      balance: userData.balance - total
+    });
 
     await addDoc(collection(db,"tasks"),{
       userId: currentUser.uid,
@@ -272,15 +306,15 @@ window.submitTask = async () => {
       quantity: qty,
       remaining: qty,
       price: selectedPrice,
-      total: total,
+      total,
       status: "pending",
       createdAt: serverTimestamp()
     });
 
     alert("✅ Task submitted for admin approval.");
-    location.href="advertiser.html";
+    location.href = "advertiser.html";
 
-  }catch(err){
+  } catch (err) {
     alert("❌ Error: " + err.message);
     loader.style.display = "none";
     actions.style.display = "grid";
