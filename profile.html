@@ -59,37 +59,61 @@ button {
   color: #fff;
 }
 
-button:hover {
-  background: #084dbf;
-}
-
 .profile-pic {
   max-width: 120px;
   border-radius: 50%;
   margin-bottom: 12px;
+}
+
+/* SPINNER */
+#spinner {
+  position: fixed;
+  inset: 0;
+  background: rgba(255,255,255,.7);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.spinner {
+  width: 45px;
+  height: 45px;
+  border: 5px solid #ccc;
+  border-top: 5px solid var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>
 </head>
 
 <body>
 
+<div id="spinner"><div class="spinner"></div></div>
+
 <header>Chiearn Hub - Profile</header>
 
 <div class="container">
   <button onclick="location.href='earner.html'">⬅ Back To Dashboard</button>
 
-  <!-- USER INFO -->
   <div class="profile-section">
     <h3>User Info</h3>
     <img id="profilePic" class="profile-pic">
+    <input type="file" id="picInput" accept="image/*">
+    <button onclick="uploadPic()">Upload Profile Picture</button>
+
     <p><b>Username:</b> <span id="username"></span></p>
     <p><b>Email:</b> <span id="email"></span></p>
     <p><b>Phone:</b> <span id="phone"></span></p>
     <p><b>Account Type:</b> <span id="model"></span></p>
     <p><b>Balance:</b> ₦<span id="balance"></span></p>
+    <p><b>Referral Count:</b> <span id="referralCount"></span></p>
   </div>
 
-  <!-- BANK DETAILS -->
   <div class="profile-section">
     <h3>Bank Details</h3>
     <input id="bankName" placeholder="Bank Name">
@@ -98,45 +122,44 @@ button:hover {
     <button onclick="saveBank()">Save Bank Details</button>
   </div>
 
-  <!-- PROFESSIONAL DETAILS -->
   <div class="profile-section">
     <h3>Professional Details</h3>
     <textarea id="bio" placeholder="Your bio"></textarea>
     <input id="skills" placeholder="Skills (comma separated)">
     <button onclick="saveProfessional()">Save Professional Details</button>
   </div>
-
-  <!-- REDIRECT BUTTON -->
-  <div class="profile-section">
-    <h3>Activities</h3>
-    <button onclick="location.href='history.html'">View Activity History</button>
-  </div>
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-import { getFirestore, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
+import { getFirestore, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
+/* NEW FIREBASE CONFIG */
 const firebaseConfig = {
-  apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
-  authDomain: "chiearnhub-5ba9e.firebaseapp.com",
-  projectId: "chiearnhub-5ba9e",
-  storageBucket: "chiearnhub-5ba9e.firebasestorage.app",
-  messagingSenderId: "332513744974",
-  appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
+  apiKey: "AIzaSyCqHY59fXbXWTOtki5cBT-qryPVNerzToM",
+  authDomain: "chiearnhubvercel.firebaseapp.com",
+  projectId: "chiearnhubvercel",
+  storageBucket: "chiearnhubvercel.firebasestorage.app",
+  messagingSenderId: "1069350970788",
+  appId: "1:1069350970788:web:b6fb81b6c397344d118d31"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+const spinner = document.getElementById("spinner");
+const showSpin = () => spinner.style.display = "flex";
+const hideSpin = () => spinner.style.display = "none";
+
 let userRef;
 
-/* ================= AUTH & ROLE CHECK ================= */
+/* LOCAL STORAGE + AUTH CHECK */
+const localUser = localStorage.getItem("uid");
 onAuthStateChanged(auth, user => {
-  if (!user) {
-    alert("Please login to continue");
+  if (!user || user.uid !== localUser) {
+    localStorage.clear();
     location.href = "login.html";
     return;
   }
@@ -145,21 +168,21 @@ onAuthStateChanged(auth, user => {
 
   onSnapshot(userRef, snap => {
     if (!snap.exists()) return;
-
     const u = snap.data();
 
     if (u.model !== "Earner") {
-      alert("Unauthorized access");
+      alert("Unauthorized");
       location.href = "login.html";
       return;
     }
 
-    // REAL-TIME UI UPDATE
-    username.textContent = u.username || "";
-    email.textContent = u.email || "";
-    phone.textContent = u.phone || "";
-    model.textContent = u.model || "";
+    username.textContent = u.username;
+    email.textContent = u.email;
+    phone.textContent = u.phone;
+    model.textContent = u.model;
     balance.textContent = (u.balance || 0).toLocaleString();
+    referralCount.textContent = u.referralCount || 0;
+
     profilePic.src = u.profilePic || "https://via.placeholder.com/120";
 
     bankName.value = u.bankDetails?.bankName || "";
@@ -171,8 +194,30 @@ onAuthStateChanged(auth, user => {
   });
 });
 
-/* ================= UPDATE FUNCTIONS ================= */
+/* IMG BB UPLOAD */
+window.uploadPic = async () => {
+  const file = picInput.files[0];
+  if (!file) return alert("Select image");
+
+  showSpin();
+
+  const formData = new FormData();
+  formData.append("image", file);
+
+  const res = await fetch("https://api.imgbb.com/1/upload?key=fb44bf17871e5949e02fe80b4f56fa47", {
+    method: "POST",
+    body: formData
+  });
+
+  const data = await res.json();
+  await updateDoc(userRef, { profilePic: data.data.url });
+
+  hideSpin();
+  alert("Profile picture updated");
+};
+
 window.saveBank = async () => {
+  showSpin();
   await updateDoc(userRef, {
     bankDetails: {
       bankName: bankName.value,
@@ -180,14 +225,17 @@ window.saveBank = async () => {
       accountName: accountName.value
     }
   });
+  hideSpin();
   alert("Bank details updated");
 };
 
 window.saveProfessional = async () => {
+  showSpin();
   await updateDoc(userRef, {
     bio: bio.value,
     skills: skills.value
   });
+  hideSpin();
   alert("Professional details updated");
 };
 </script>
