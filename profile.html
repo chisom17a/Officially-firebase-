@@ -155,14 +155,16 @@ const hideSpin = () => spinner.style.display = "none";
 
 let userRef;
 
-/* LOCAL STORAGE + AUTH CHECK */
-const localUser = localStorage.getItem("uid");
+/* AUTH CHECK & LOCAL STORAGE SYNC */
 onAuthStateChanged(auth, user => {
-  if (!user || user.uid !== localUser) {
+  if (!user) {
     localStorage.clear();
     location.href = "login.html";
     return;
   }
+
+  // store UID in localStorage if missing
+  if (!localStorage.getItem("uid")) localStorage.setItem("uid", user.uid);
 
   userRef = doc(db, "users", user.uid);
 
@@ -170,25 +172,26 @@ onAuthStateChanged(auth, user => {
     if (!snap.exists()) return;
     const u = snap.data();
 
+    // Earner-only protection
     if (u.model !== "Earner") {
-      alert("Unauthorized");
+      alert("Unauthorized access");
       location.href = "login.html";
       return;
     }
 
+    // Fill user info
     username.textContent = u.username;
     email.textContent = u.email;
     phone.textContent = u.phone;
     model.textContent = u.model;
     balance.textContent = (u.balance || 0).toLocaleString();
     referralCount.textContent = u.referralCount || 0;
-
     profilePic.src = u.profilePic || "https://via.placeholder.com/120";
 
+    // Fill bank & professional details
     bankName.value = u.bankDetails?.bankName || "";
     accountNumber.value = u.bankDetails?.accountNumber || "";
     accountName.value = u.bankDetails?.accountName || "";
-
     bio.value = u.bio || "";
     skills.value = u.skills || "";
   });
@@ -200,43 +203,60 @@ window.uploadPic = async () => {
   if (!file) return alert("Select image");
 
   showSpin();
+  try {
+    const formData = new FormData();
+    formData.append("image", file);
 
-  const formData = new FormData();
-  formData.append("image", file);
+    const res = await fetch("https://api.imgbb.com/1/upload?key=fb44bf17871e5949e02fe80b4f56fa47", {
+      method: "POST",
+      body: formData
+    });
 
-  const res = await fetch("https://api.imgbb.com/1/upload?key=fb44bf17871e5949e02fe80b4f56fa47", {
-    method: "POST",
-    body: formData
-  });
+    const data = await res.json();
+    await updateDoc(userRef, { profilePic: data.data.url });
 
-  const data = await res.json();
-  await updateDoc(userRef, { profilePic: data.data.url });
-
-  hideSpin();
-  alert("Profile picture updated");
+    alert("Profile picture updated");
+  } catch(err) {
+    console.error(err);
+    alert("Failed to upload picture");
+  } finally {
+    hideSpin();
+  }
 };
 
 window.saveBank = async () => {
   showSpin();
-  await updateDoc(userRef, {
-    bankDetails: {
-      bankName: bankName.value,
-      accountNumber: accountNumber.value,
-      accountName: accountName.value
-    }
-  });
-  hideSpin();
-  alert("Bank details updated");
+  try {
+    await updateDoc(userRef, {
+      bankDetails: {
+        bankName: bankName.value,
+        accountNumber: accountNumber.value,
+        accountName: accountName.value
+      }
+    });
+    alert("Bank details updated");
+  } catch(err) {
+    console.error(err);
+    alert("Failed to save bank details");
+  } finally {
+    hideSpin();
+  }
 };
 
 window.saveProfessional = async () => {
   showSpin();
-  await updateDoc(userRef, {
-    bio: bio.value,
-    skills: skills.value
-  });
-  hideSpin();
-  alert("Professional details updated");
+  try {
+    await updateDoc(userRef, {
+      bio: bio.value,
+      skills: skills.value
+    });
+    alert("Professional details updated");
+  } catch(err) {
+    console.error(err);
+    alert("Failed to save professional details");
+  } finally {
+    hideSpin();
+  }
 };
 </script>
 
