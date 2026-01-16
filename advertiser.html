@@ -1,239 +1,146 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
   <title>Chiearn Hub - Advertiser Dashboard</title>
-
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
-    body { background: #f4f6f9; color: #1e293b; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+      padding: 0;
+    }
 
-    /* 🔄 LOADER */
-    #loader {
-      position: fixed;
-      inset: 0;
-      background: #f4f6f9;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-    }
-    .spinner {
-      width: 55px;
-      height: 55px;
-      border: 6px solid #cbd5e1;
-      border-top: 6px solid #2563eb;
-      border-radius: 50%;
-      animation: spin 0.9s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* SIDEBAR */
-    .sidebar {
-      width: 70px;
-      background: linear-gradient(180deg, #1e293b, #0f172a);
-      height: 100vh;
-      position: fixed;
-      overflow: hidden;
-      transition: width 0.3s;
-      padding-top: 20px;
-    }
-    .sidebar:hover { width: 220px; }
-    .logo {
+    header {
+      background: #0a5cff;
       color: #fff;
-      font-size: 20px;
-      font-weight: 600;
+      padding: 15px;
       text-align: center;
-      margin-bottom: 40px;
-      white-space: nowrap;
+      font-size: 20px;
+      font-weight: bold;
     }
-    .menu a {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      padding: 15px 20px;
-      color: #cbd5e1;
-      text-decoration: none;
-      transition: 0.3s;
-    }
-    .menu a:hover { background: rgba(255,255,255,0.1); color: #fff; }
-    .menu span:last-child { opacity: 0; transition: opacity 0.3s; white-space: nowrap; }
-    .sidebar:hover .menu span:last-child { opacity: 1; }
 
-    /* MAIN */
-    .main {
-      margin-left: 70px;
-      padding: 30px;
-      transition: margin-left 0.3s;
-      display: none;
-    }
-    .sidebar:hover ~ .main { margin-left: 220px; }
-
-    .header {
+    nav {
       background: #fff;
-      padding: 25px;
-      border-radius: 15px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-      margin-bottom: 30px;
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0;
+      border-bottom: 1px solid #ddd;
     }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 20px;
+
+    nav a {
+      text-decoration: none;
+      color: #333;
+      font-weight: bold;
+      font-size: 14px;
     }
+
+    .container {
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
     .card {
       background: #fff;
-      padding: 25px;
-      border-radius: 20px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
-    .value { font-size: 30px; font-weight: 600; }
-    .btn {
-      padding: 10px 18px;
-      border: none;
-      border-radius: 10px;
-      background: linear-gradient(135deg, #2563eb, #1d4ed8);
-      color: #fff;
-      cursor: pointer;
-      margin-top: 10px;
-      margin-right: 10px;
-    }
-    .btn.secondary { background: #0f172a; }
 
-    .referral {
-      background: linear-gradient(135deg, #0f172a, #1e293b);
-      color: #fff;
+    .value {
+      font-size: 28px;
+      font-weight: bold;
+      margin: 10px 0;
     }
+
+    .btn {
+      padding: 10px 15px;
+      border: none;
+      background: #0a5cff;
+      color: #fff;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-right: 5px;
+      margin-top: 5px;
+    }
+
+    .btn.secondary {
+      background: #555;
+    }
+
     .referral input {
       width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      border: none;
-      margin: 15px 0;
+      padding: 8px;
+      margin: 10px 0;
     }
   </style>
 </head>
+
 <body>
 
-<!-- 🔄 LOADER -->
-<div id="loader">
-  <div class="spinner"></div>
-</div>
+<header>Chiearn Hub - Advertiser Dashboard</header>
 
-<!-- SIDEBAR -->
-<div class="sidebar">
-  <div class="logo">Chiearn</div>
-  <div class="menu">
-    <a href="#"><span>🏠</span><span>Dashboard</span></a>
-    <a href="posttask.html"><span>📝</span><span>Post Task</span></a>
-    <a href="deposit.html"><span>💰</span><span>Deposit</span></a>
-    <a href="Adprofile.html"><span>👤</span><span>Profile</span></a>
-    <a href="#" onclick="logout()" style="color:#f87171;"><span>🚪</span><span>Logout</span></a>
+<nav>
+  <a href="dashboard.html">🏠Dashboard</a>
+  <a href="posttask.html">📝Post Task</a>
+  <a href="deposit.html">💰Deposit</a>
+  <a href="profile.html">👤Profile</a>
+  <a href="#" onclick="logout()">🚪Logout</a>
+</nav>
+
+<div class="container">
+  <h1>Advertiser Dashboard</h1>
+
+  <div class="card">
+    <h2>Available Balance</h2>
+    <div class="value" id="balance">₦0</div>
+    <button class="btn" onclick="location.href='posttask.html'">Post Task</button>
+    <button class="btn secondary" onclick="location.href='deposit.html'">Deposit</button>
+  </div>
+
+  <div class="card referral">
+    <h2>Referral Program</h2>
+    <input type="text" id="refLink" readonly>
+    <button class="btn" onclick="copyReferral()">Copy Link</button>
+    <p>✔ 0.5% advertiser deposit</p>
+    <p>✔ ₦500 per activated earner</p>
   </div>
 </div>
 
-<!-- MAIN -->
-<div class="main" id="mainContent">
-  <div class="header">
-    <h1 id="welcomeText">Advertiser Dashboard</h1>
-  </div>
+<script>
+  // 🔐 SESSION CHECK (NO AUTO LOGOUT)
+  const user = JSON.parse(localStorage.getItem("user"));
 
-  <div class="grid">
-    <div class="card">
-      <h2>Available Balance</h2>
-      <div class="value" id="balance">₦0</div>
-      <button class="btn" onclick="location.href='posttask.html'">Post Task</button>
-      <button class="btn secondary" onclick="location.href='deposit.html'">Deposit</button>
-    </div>
+  if (!user || user.model !== "Advertiser") {
+    window.location.href = "login.html";
+  }
 
-    <div class="card referral">
-      <h2>Referral Program</h2>
-      <input type="text" id="refLink" readonly>
-      <button class="btn" onclick="copyReferral()">Copy Link</button>
-      <p>✔ 0.5% advertiser deposit</p>
-      <p>✔ ₦500 per activated earner</p>
-    </div>
-  </div>
-</div>
+  // 💰 LOAD BALANCE
+  document.getElementById("balance").textContent = "₦" + (user.balance || 0);
 
-<!-- FIREBASE -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-  import {
-    getAuth,
-    onAuthStateChanged,
-    signOut,
-    setPersistence,
-    browserLocalPersistence
-  } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-  import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+  // 🔗 REFERRAL LINK
+  document.getElementById("refLink").value =
+    window.location.origin + "/register.html?ref=" + user.username;
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
-    authDomain: "chiearnhub-5ba9e.firebaseapp.com",
-    projectId: "chiearnhub-5ba9e",
-    storageBucket: "chiearnhub-5ba9e.firebasestorage.app",
-    messagingSenderId: "332513744974",
-    appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
-  const loader = document.getElementById("loader");
-  const mainContent = document.getElementById("mainContent");
-
-  // ✅ CRITICAL FIX — persist login
-  await setPersistence(auth, browserLocalPersistence);
-
-  onAuthStateChanged(auth, user => {
-    if (!user) {
-      window.location.replace("login.html");
-      return;
-    }
-
-    const userRef = doc(db, "users", user.uid);
-
-    onSnapshot(userRef, snap => {
-      if (!snap.exists()) {
-        signOut(auth).then(() => window.location.replace("login.html"));
-        return;
-      }
-
-      const data = snap.data();
-
-      if (data.model !== "Advertiser") {
-        signOut(auth).then(() => window.location.replace("login.html"));
-        return;
-      }
-
-      document.getElementById("welcomeText").textContent =
-        `Welcome, ${data.username}`;
-
-      document.getElementById("balance").textContent =
-        "₦" + (data.balance || 0).toLocaleString();
-
-      const baseURL = window.location.origin + "/?ref=";
-      document.getElementById("refLink").value = baseURL + data.username;
-
-      loader.style.display = "none";
-      mainContent.style.display = "block";
-    });
-  });
-
-  window.copyReferral = () => {
-    navigator.clipboard.writeText(refLink.value);
+  function copyReferral() {
+    const refInput = document.getElementById("refLink");
+    refInput.select();
+    refInput.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(refInput.value);
     alert("Referral link copied!");
-  };
+  }
 
-  window.logout = async () => {
-    await signOut(auth);
-    window.location.replace("login.html");
-  };
+  // 🚪 LOGOUT (ONLY WHEN CLICKED)
+  function logout() {
+    localStorage.removeItem("user");
+    window.location.href = "login.html";
+  }
 </script>
 
 </body>
