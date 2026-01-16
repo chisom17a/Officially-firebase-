@@ -98,16 +98,28 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+/* 🔐 CHECK LOCAL STORAGE FIRST */
+const storedUser = JSON.parse(localStorage.getItem("currentUser"));
+
+if (!storedUser || !storedUser.uid) {
+  alert("Please login");
+  location.href = "login.html";
+}
+
 /* 🔐 AUTH + ADMIN CHECK */
 onAuthStateChanged(auth, async user => {
-  if (!user) {
+  if (!user || user.uid !== storedUser.uid) {
+    alert("Session expired");
+    localStorage.removeItem("currentUser");
     location.href = "login.html";
     return;
   }
 
+  // Fetch user data from Firestore
   const snap = await getDoc(doc(db, "users", user.uid));
   if (!snap.exists() || snap.data().model !== "Admin") {
     alert("Unauthorized");
+    localStorage.removeItem("currentUser");
     location.href = "login.html";
     return;
   }
@@ -142,6 +154,7 @@ window.toggleSidebar = () => {
 /* LOGOUT */
 window.logout = async () => {
   await signOut(auth);
+  localStorage.removeItem("currentUser");
   location.href = "login.html";
 };
 </script>
