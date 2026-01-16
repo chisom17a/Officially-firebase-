@@ -110,13 +110,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebas
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 import { getFirestore, collection, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
+/* ✅ SAME FIREBASE PROJECT AS LOGIN PAGE */
 const firebaseConfig = {
-  apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
-  authDomain: "chiearnhub-5ba9e.firebaseapp.com",
-  projectId: "chiearnhub-5ba9e",
-  storageBucket: "chiearnhub-5ba9e.firebasestorage.app",
-  messagingSenderId: "332513744974",
-  appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
+  apiKey: "AIzaSyCqHY59fXbXWTOtki5cBT-qryPVNerzToM",
+  authDomain: "chiearnhubvercel.firebaseapp.com",
+  projectId: "chiearnhubvercel",
+  storageBucket: "chiearnhubvercel.firebasestorage.app",
+  messagingSenderId: "1069350970788",
+  appId: "1:1069350970788:web:b6fb81b6c397344d118d31"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -126,7 +127,7 @@ const db = getFirestore(app);
 const spinner = document.getElementById("spinner");
 const hideSpinner = () => spinner.style.display = "none";
 
-/* 🔐 SAFE AUTH FLOW */
+/* 🔐 STABLE ADMIN AUTH CHECK */
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     location.href = "login.html";
@@ -134,31 +135,29 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   try {
-    const userRef = doc(db, "users", user.uid);
-    const snap = await getDoc(userRef);
+    const snap = await getDoc(doc(db, "users", user.uid));
 
     if (!snap.exists()) {
-      alert("Account record missing. Contact support.");
+      alert("Account record missing.");
       hideSpinner();
       return;
     }
 
     const role = (snap.data().model || "").toLowerCase();
-
     if (role !== "admin") {
       alert("Unauthorized access");
       location.href = "login.html";
       return;
     }
 
-    adminWelcome.innerText =
+    adminWelcome.textContent =
       `Welcome, ${snap.data().username || user.email}`;
 
     hideSpinner();
 
   } catch (err) {
-    console.error("Auth check failed:", err);
-    alert("Network error. Please refresh.");
+    console.error(err);
+    alert("Connection error. Refresh page.");
     hideSpinner();
   }
 });
@@ -167,9 +166,9 @@ onAuthStateChanged(auth, async (user) => {
 onSnapshot(collection(db, "users"), (snap) => {
   let total=0, earners=0, advertisers=0, admins=0;
 
-  snap.forEach(doc => {
+  snap.forEach(d => {
     total++;
-    const role = (doc.data().model || "").toLowerCase();
+    const role = (d.data().model || "").toLowerCase();
     if (role === "earner") earners++;
     else if (role === "advertiser") advertisers++;
     else if (role === "admin") admins++;
