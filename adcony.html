@@ -35,6 +35,13 @@ header{
   margin-bottom:20px
 }
 .meta{font-size:14px;color:#555;margin-bottom:10px}
+.guide{
+  background:#f1f5f9;
+  padding:12px;
+  border-radius:8px;
+  margin:12px 0;
+  font-size:14px
+}
 .actions{display:flex;gap:12px;margin-top:15px}
 button{
   padding:10px 16px;
@@ -54,7 +61,6 @@ button{
 <div class="container" id="taskContainer">Checking authorization...</div>
 
 <script type="module">
-/* ================= FIREBASE (chiearnhubvercel) ================= */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 import {
@@ -132,12 +138,20 @@ function loadTasks(){
       div.className="card";
       div.innerHTML=`
         <h3>${t.platform} – ${t.type}</h3>
+
         <div class="meta">
           <b>Advertiser UID:</b> ${t.userId}<br>
           <b>Advertiser Price:</b> ₦${t.price}<br>
           <b>Quantity:</b> ${t.quantity}<br>
           <b>Total:</b> ₦${t.total}
         </div>
+
+        <!-- ✅ TASK GUIDE ADDED -->
+        <div class="guide">
+          <b>Task Guide</b><br>
+          ${t.guide || "No guide provided"}
+        </div>
+
         <div class="actions">
           <button class="approve">Approve</button>
           <button class="reject">Reject</button>
@@ -167,6 +181,10 @@ async function approveTask(taskId, task){
     type: task.type,
     link: task.link,
     proofTitle: task.proofTitle,
+
+    /* ✅ SAVE TASK GUIDE */
+    guide: task.guide || "",
+
     advertiserPrice: task.price,
     earnerPrice,
     quantity: task.quantity,
