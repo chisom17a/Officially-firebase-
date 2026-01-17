@@ -51,25 +51,25 @@ button{
 <body>
 
 <header>Admin – Task Submissions</header>
-<div class="container" id="taskContainer">Loading...</div>
+<div class="container" id="taskContainer">Checking authorization...</div>
 
 <script type="module">
-/* ================= FIREBASE ================= */
+/* ================= FIREBASE (chiearnhubvercel) ================= */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 import {
   getFirestore, collection, query, where, onSnapshot,
   doc, getDoc, updateDoc, addDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-/* 🔥 CHIEARNHUB VERCEL CONFIG */
+/* 🔥 CONFIG */
 const firebaseConfig = {
-  apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
-  authDomain: "chiearnhub-5ba9e.firebaseapp.com",
-  projectId: "chiearnhub-5ba9e",
-  storageBucket: "chiearnhub-5ba9e.firebasestorage.app",
-  messagingSenderId: "332513744974",
-  appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
+  apiKey: "AIzaSyCqHY59fXbXWTOtki5cBT-qryPVNerzToM",
+  authDomain: "chiearnhubvercel.firebaseapp.com",
+  projectId: "chiearnhubvercel",
+  storageBucket: "chiearnhubvercel.firebasestorage.app",
+  messagingSenderId: "1069350970788",
+  appId: "1:1069350970788:web:b6fb81b6c397344d118d31"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -78,7 +78,7 @@ const db = getFirestore(app);
 
 const container = document.getElementById("taskContainer");
 
-/* ================= EARNER PRICE TABLE ================= */
+/* ================= PRICE TABLE ================= */
 const earnerPrices = {
   WhatsApp:{ "Group Join":20,"Channel Follow":15 },
   Instagram:{ "Follow":20,"Like":10 },
@@ -86,47 +86,54 @@ const earnerPrices = {
   YouTube:{ "Subscribe":20 }
 };
 
-/* ================= AUTH + ADMIN CHECK ================= */
-onAuthStateChanged(auth, async (user)=>{
-  const stored = JSON.parse(localStorage.getItem("currentUser"));
+/* ================= LOCAL STORAGE CHECK ================= */
+const storedUser = JSON.parse(localStorage.getItem("currentUser"));
+if (!storedUser || storedUser.model !== "Admin") {
+  alert("Please login as admin");
+  location.href = "login.html";
+}
 
-  if(!user || !stored || stored.uid !== user.uid){
+/* ================= AUTH + ADMIN VERIFY ================= */
+onAuthStateChanged(auth, async (user)=>{
+  if(!user || user.uid !== storedUser.uid){
     localStorage.removeItem("currentUser");
-    return location.href="login.html";
+    location.href="login.html";
+    return;
   }
 
   const snap = await getDoc(doc(db,"users",user.uid));
   if(!snap.exists() || snap.data().model !== "Admin"){
-    alert("Unauthorized");
-    await signOut(auth);
     localStorage.removeItem("currentUser");
-    return location.href="login.html";
+    alert("Unauthorized access");
+    location.href="login.html";
+    return;
   }
 
   loadTasks();
 });
 
-/* ================= LOAD PENDING TASKS ================= */
+/* ================= LOAD TASKS ================= */
 function loadTasks(){
   const q = query(collection(db,"tasks"), where("status","==","pending"));
+
   onSnapshot(q, snap=>{
     container.innerHTML="";
 
     if(snap.empty){
-      container.innerHTML="<p>No pending task submissions.</p>";
+      container.innerHTML="<p>No pending tasks.</p>";
       return;
     }
 
-    snap.forEach(docSnap=>{
-      const t = docSnap.data();
-      const id = docSnap.id;
+    snap.forEach(d=>{
+      const t = d.data();
+      const id = d.id;
 
       const div = document.createElement("div");
       div.className="card";
       div.innerHTML=`
         <h3>${t.platform} – ${t.type}</h3>
         <div class="meta">
-          <b>Advertiser:</b> ${t.userId}<br>
+          <b>Advertiser UID:</b> ${t.userId}<br>
           <b>Advertiser Price:</b> ₦${t.price}<br>
           <b>Quantity:</b> ${t.quantity}<br>
           <b>Total:</b> ₦${t.total}
@@ -145,7 +152,7 @@ function loadTasks(){
   });
 }
 
-/* ================= APPROVE TASK ================= */
+/* ================= APPROVE ================= */
 async function approveTask(taskId, task){
   if(!confirm("Approve this task?")) return;
 
@@ -173,20 +180,20 @@ async function approveTask(taskId, task){
     approvedAt: serverTimestamp()
   });
 
-  alert("Task approved and published");
+  alert("Task approved & published");
 }
 
-/* ================= REJECT TASK ================= */
+/* ================= REJECT ================= */
 async function rejectTask(taskId, task){
   const reason = prompt("Reason for rejection?");
   if(!reason) return;
 
   const userRef = doc(db,"users",task.userId);
-  const userSnap = await getDoc(userRef);
+  const snap = await getDoc(userRef);
 
-  if(userSnap.exists()){
+  if(snap.exists()){
     await updateDoc(userRef,{
-      balance:(userSnap.data().balance||0) + task.total
+      balance:(snap.data().balance||0) + task.total
     });
   }
 
@@ -196,7 +203,7 @@ async function rejectTask(taskId, task){
     rejectedAt:serverTimestamp()
   });
 
-  alert("Task rejected and advertiser refunded");
+  alert("Task rejected & refunded");
 }
 </script>
 
