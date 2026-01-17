@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <title>Admin Task Review</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
 <style>
 body{font-family:Inter;background:#f4f7fa;margin:0}
 header{background:#fff;padding:15px;font-size:22px;font-weight:700}
@@ -13,80 +17,164 @@ button{padding:10px 16px;border:none;border-radius:8px;font-weight:600;cursor:po
 .approve{background:#16a34a;color:#fff}
 .reject{background:#dc2626;color:#fff}
 .actions{display:flex;gap:12px;margin-top:15px}
+.meta{font-size:14px;color:#555}
 </style>
 </head>
 
 <body>
 
 <header>Admin – Task Submissions</header>
-  <button type="button" class="btn secondary" onclick="location.href='adminpanel.html'">Back to panel</button>
-<div class="container" id="taskContainer"></div>
-  <button type="button" class="btn secondary" onclick="location.href='adminpanel.html'">Home</button>
 
-<script>
-const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-const users = JSON.parse(localStorage.getItem("users")) || [];
+<div class="container" id="taskContainer">Checking authorization…</div>
 
-if (!currentUser) location.href="login.html";
-const admin = users.find(u => u.email===currentUser.email && u.model==="Admin");
-if (!admin) location.href="login.html";
+<script type="module">
+/* ================= FIREBASE (chiearnhubvercel) ================= */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
+import {
+  getFirestore, collection, query, where, onSnapshot,
+  doc, getDoc, updateDoc, increment, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-let submissions = JSON.parse(localStorage.getItem("taskSubmissions")) || [];
+/* 🔥 CONFIG */
+const firebaseConfig = {
+  apiKey: "AIzaSyCqHY59fXbXWTOtki5cBT-qryPVNerzToM",
+  authDomain: "chiearnhubvercel.firebaseapp.com",
+  projectId: "chiearnhubvercel",
+  storageBucket: "chiearnhubvercel.firebasestorage.app",
+  messagingSenderId: "1069350970788",
+  appId: "1:1069350970788:web:b6fb81b6c397344d118d31"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
 const container = document.getElementById("taskContainer");
 
-function render() {
-  container.innerHTML = "";
-  const pending = submissions.filter(s => s.status === "pending");
+/* ================= LOCAL STORAGE CHECK ================= */
+const storedUser = JSON.parse(localStorage.getItem("currentUser"));
+if(!storedUser || storedUser.model !== "Admin"){
+  alert("Please login as admin");
+  location.href = "login.html";
+}
 
-  if (!pending.length) {
-    container.innerHTML = "<p>No pending submissions</p>";
-    return;
+/* ================= AUTH VERIFY ================= */
+onAuthStateChanged(auth, async user=>{
+  if(!user || user.uid !== storedUser.uid){
+    localStorage.removeItem("currentUser");
+    return location.href="login.html";
   }
 
-  pending.forEach(sub => {
-    const card = document.createElement("div");
-    card.className = "card";
-    card.innerHTML = `
-      <h3>${sub.taskTitle}</h3>
-      <p><b>User:</b> ${sub.userEmail}</p>
-      <p><b>Reward:</b> ₦${sub.reward}</p>
-      <p><b>Text Proof:</b><br>${sub.textProof}</p>
-      ${sub.imageProof ? `<img src="${sub.imageProof}">` : ""}
-      <div class="actions">
-        <button class="approve" onclick="approve('${sub.id}')">Approve</button>
-        <button class="reject" onclick="reject('${sub.id}')">Reject</button>
-      </div>
-    `;
-    container.appendChild(card);
+  const adminSnap = await getDoc(doc(db,"users",user.uid));
+  if(!adminSnap.exists() || adminSnap.data().model !== "Admin"){
+    alert("Unauthorized");
+    return location.href="login.html";
+  }
+
+  loadSubmissions();
+});
+
+/* ================= LOAD SUBMISSIONS ================= */
+function loadSubmissions(){
+  const q = query(
+    collection(db,"adminTaskQueue"),
+    where("status","==","pending")
+  );
+
+  onSnapshot(q, snap=>{
+    container.innerHTML = "";
+
+    if(snap.empty){
+      container.innerHTML = "<p>No pending submissions</p>";
+      return;
+    }
+
+    snap.forEach(docSnap=>{
+      const s = docSnap.data();
+      const id = docSnap.id;
+
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <h3>${s.platform} - ${s.type}</h3>
+
+        <div class="meta">
+          <b>User:</b> ${s.username || ""} (${s.userEmail})<br>
+          <b>Reward:</b> ₦${s.reward}
+        </div>
+
+        <p><b>Text Proof:</b><br>${s.proofText}</p>
+        ${s.proofImage ? `<img src="${s.proofImage}">` : ""}
+
+        <div class="actions">
+          <button class="approve">Approve</button>
+          <button class="reject">Reject</button>
+        </div>
+      `;
+
+      card.querySelector(".approve").onclick = () => approve(id, s);
+      card.querySelector(".reject").onclick = () => reject(id);
+
+      container.appendChild(card);
+    });
   });
 }
 
-function approve(id) {
-  const sub = submissions.find(s => s.id === id);
-  const user = users.find(u => u.email === sub.userEmail);
-  if (!user) return alert("User not found");
+/* ================= APPROVE ================= */
+async function approve(submissionId, sub){
+  if(!confirm("Approve this submission?")) return;
 
-  user.balance = (user.balance || 0) + sub.reward;
-  sub.status = "approved";
-  sub.reviewedAt = new Date().toISOString();
+  try{
+    /* Credit user */
+    await updateDoc(doc(db,"users",sub.userId),{
+      balance: increment(sub.reward)
+    });
 
-  localStorage.setItem("users", JSON.stringify(users));
-  localStorage.setItem("taskSubmissions", JSON.stringify(submissions));
-  alert("Approved & user credited");
-  render();
+    /* Update submission */
+    await updateDoc(doc(db,"submissions",submissionId),{
+      status:"approved",
+      reviewedAt: serverTimestamp()
+    });
+
+    await updateDoc(doc(db,"adminTaskQueue",submissionId),{
+      status:"approved",
+      reviewedAt: serverTimestamp()
+    });
+
+    alert("✅ Approved & user credited");
+
+  }catch(err){
+    console.error(err);
+    alert("❌ Failed to approve");
+  }
 }
 
-function reject(id) {
-  const sub = submissions.find(s => s.id === id);
-  sub.status = "rejected";
-  sub.reviewedAt = new Date().toISOString();
+/* ================= REJECT ================= */
+async function reject(submissionId){
+  const reason = prompt("Reason for rejection?");
+  if(!reason) return;
 
-  localStorage.setItem("taskSubmissions", JSON.stringify(submissions));
-  alert("Rejected");
-  render();
+  try{
+    await updateDoc(doc(db,"submissions",submissionId),{
+      status:"rejected",
+      rejectionReason: reason,
+      reviewedAt: serverTimestamp()
+    });
+
+    await updateDoc(doc(db,"adminTaskQueue",submissionId),{
+      status:"rejected",
+      rejectionReason: reason,
+      reviewedAt: serverTimestamp()
+    });
+
+    alert("❌ Submission rejected");
+
+  }catch(err){
+    console.error(err);
+    alert("❌ Failed to reject");
+  }
 }
-
-render();
 </script>
 
 </body>
