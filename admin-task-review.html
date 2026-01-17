@@ -2,65 +2,94 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Admin – Task Review</title>
+<title>Admin Task Review</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body{font-family:Arial;background:#f4f6f8;margin:0}
-header{background:#111;color:#fff;padding:15px;text-align:center;font-size:20px}
-.container{max-width:1000px;margin:20px auto;padding:10px}
+body{
+  font-family:Inter,Arial;
+  background:#f4f6f8;
+  margin:0;
+}
+header{
+  background:#111;
+  color:#fff;
+  padding:16px;
+  text-align:center;
+  font-size:20px;
+  font-weight:700;
+}
+.container{
+  max-width:1000px;
+  margin:20px auto;
+  padding:10px;
+}
 .card{
   background:#fff;
-  padding:15px;
-  border-radius:10px;
-  margin-bottom:15px;
-  box-shadow:0 2px 8px rgba(0,0,0,.08)
+  padding:16px;
+  border-radius:12px;
+  margin-bottom:18px;
+  box-shadow:0 2px 10px rgba(0,0,0,.08);
 }
-.row{margin:6px 0;font-size:14px}
-.guide{
-  background:#f9fafb;
-  border-left:4px solid #0d6efd;
-  padding:10px;
-  margin-top:10px;
-  font-size:14px
-}
-.btn{
-  padding:10px 14px;
+.row{margin:6px 0;font-size:15px}
+.actions{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+button{
+  padding:10px 16px;
   border:none;
-  border-radius:6px;
+  border-radius:8px;
+  font-weight:600;
   cursor:pointer;
-  font-weight:bold;
-  margin-right:6px;
 }
 .approve{background:#16a34a;color:#fff}
 .reject{background:#dc2626;color:#fff}
-.view{background:#0d6efd;color:#fff}
-
-.loading{display:none;margin-top:10px;font-size:14px}
-
+.view{background:#2563eb;color:#fff}
+.loading{
+  display:none;
+  margin-top:10px;
+  font-size:14px;
+}
+.guide{
+  background:#f0f9ff;
+  border-left:5px solid #0284c7;
+  padding:12px;
+  border-radius:8px;
+  margin-bottom:20px;
+}
 .modal{
   position:fixed;
   inset:0;
-  background:rgba(0,0,0,.6);
+  background:rgba(0,0,0,.7);
   display:none;
   align-items:center;
-  justify-content:center
+  justify-content:center;
 }
 .modal img{
   max-width:90%;
   max-height:90%;
   background:#fff;
   padding:10px;
-  border-radius:8px
+  border-radius:10px;
 }
 </style>
 </head>
 
 <body>
 
-<header>🛠 Admin Task Review</header>
+<header>🛠 Admin – Task Submissions Review</header>
 
-<div class="container" id="list">Loading…</div>
+<div class="container">
+
+  <div class="guide">
+    <b>📌 Task Review Guide</b><br>
+    • Verify text & image proof carefully<br>
+    • Approve only if task guide was followed<br>
+    • Reject if proof is incomplete or fake<br>
+    • Approved users are credited instantly<br>
+    • Rejected tasks refund remaining slots
+  </div>
+
+  <div id="list">Loading submissions…</div>
+</div>
 
 <div class="modal" id="imgModal" onclick="this.style.display='none'">
   <img id="modalImg">
@@ -68,13 +97,13 @@ header{background:#111;color:#fff;padding:15px;text-align:center;font-size:20px}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
 import {
   getFirestore, collection, query, where, getDocs,
   doc, getDoc, runTransaction, increment
 } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
-/* 🔐 chiearnhubvercel Firebase config */
+/* 🔥 CHIEARNHUB FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
   authDomain: "chiearnhub-5ba9e.firebaseapp.com",
@@ -87,30 +116,37 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+
 const list = document.getElementById("list");
 
-/* 🔐 AUTH + ADMIN CHECK */
-onAuthStateChanged(auth, async user=>{
-  if(!user) return location.href="login.html";
+/* 🔐 LOCAL STORAGE CHECK */
+const localUser = JSON.parse(localStorage.getItem("currentUser"));
+if(!localUser){
+  location.href="login.html";
+}
 
+/* 🔐 FIREBASE AUTH CHECK */
+onAuthStateChanged(auth, async (user)=>{
+  if(!user){
+    location.href="login.html";
+    return;
+  }
+
+  /* 🔐 ADMIN ROLE CHECK */
   const userSnap = await getDoc(doc(db,"users",user.uid));
   if(!userSnap.exists() || userSnap.data().model !== "Admin"){
-    alert("Access denied");
-    return location.href="index.html";
+    alert("Access denied: Admins only");
+    location.href="index.html";
+    return;
   }
 
   loadSubmissions();
 });
 
-/* 📥 LOAD SUBMISSIONS */
 async function loadSubmissions(){
   list.innerHTML = "Loading…";
 
-  const q = query(
-    collection(db,"submissions"),
-    where("status","==","pending")
-  );
-
+  const q = query(collection(db,"submissions"), where("status","==","pending"));
   const snap = await getDocs(q);
 
   if(snap.empty){
@@ -120,12 +156,11 @@ async function loadSubmissions(){
 
   list.innerHTML = "";
 
-  for(const docSnap of snap.docs){
-    const s = docSnap.data();
+  for(const d of snap.docs){
+    const s = d.data();
 
     const taskSnap = await getDoc(doc(db,"availabletasks",s.taskId));
     if(!taskSnap.exists()) continue;
-
     const task = taskSnap.data();
 
     const card = document.createElement("div");
@@ -133,21 +168,14 @@ async function loadSubmissions(){
 
     card.innerHTML = `
       <div class="row"><b>User:</b> ${s.username} (${s.userEmail})</div>
+      <div class="row"><b>Task Guide:</b><br>${task.guide || "—"}</div>
+      <div class="row"><b>Text Proof:</b><br>${s.proofText || "—"}</div>
       <div class="row"><b>Reward:</b> ₦${s.reward}</div>
-      <div class="row"><b>Proof Title:</b> ${s.proofTitle || "-"}</div>
-      <div class="row"><b>Text Proof:</b> ${s.proofText || "-"}</div>
-
-      <div class="guide">
-        <b>Task Guide:</b><br>
-        ${task.guide || "No guide provided"}
+      <div class="actions">
+        <button class="view">View Image</button>
+        <button class="approve">Approve</button>
+        <button class="reject">Reject</button>
       </div>
-
-      <div style="margin-top:10px">
-        <button class="btn view">View Image</button>
-        <button class="btn approve">Approve</button>
-        <button class="btn reject">Reject</button>
-      </div>
-
       <div class="loading">Processing…</div>
     `;
 
@@ -162,63 +190,43 @@ async function loadSubmissions(){
     };
 
     approveBtn.onclick = async ()=>{
-      if(!confirm("Approve & credit user?")) return;
+      if(!confirm("Approve and credit user?")) return;
+      approveBtn.style.display = rejectBtn.style.display = viewBtn.style.display = "none";
+      loading.style.display="block";
 
-      toggle(false);
-
-      try{
-        await runTransaction(db, async t=>{
-          const userRef = doc(db,"users",s.userId);
-          const subRef = doc(db,"submissions",docSnap.id);
-
-          const u = await t.get(userRef);
-          t.update(userRef,{
-            balance:(u.data().balance||0)+s.reward
-          });
-          t.update(subRef,{
-            status:"approved",
-            reviewedAt:Date.now()
-          });
+      await runTransaction(db, async(t)=>{
+        t.update(doc(db,"users",s.userId),{ balance: increment(s.reward) });
+        t.update(doc(db,"submissions",d.id),{
+          status:"approved",
+          reviewedAt: Date.now()
         });
+      });
 
-        card.remove();
-      }catch(e){
-        alert(e.message);
-        toggle(true);
-      }
+      card.remove();
+      alert("Approved successfully");
     };
 
     rejectBtn.onclick = async ()=>{
-      const reason = prompt("Reason for rejection?");
+      const reason = prompt("Rejection reason:");
       if(!reason) return;
 
-      toggle(false);
+      approveBtn.style.display = rejectBtn.style.display = viewBtn.style.display = "none";
+      loading.style.display="block";
 
-      try{
-        await runTransaction(db, async t=>{
-          t.update(doc(db,"submissions",docSnap.id),{
-            status:"rejected",
-            reason,
-            reviewedAt:Date.now()
-          });
-          t.update(doc(db,"availabletasks",s.taskId),{
-            remaining: increment(1)
-          });
+      await runTransaction(db, async(t)=>{
+        t.update(doc(db,"submissions",d.id),{
+          status:"rejected",
+          reason,
+          reviewedAt: Date.now()
         });
+        t.update(doc(db,"availabletasks",s.taskId),{
+          remaining: increment(1)
+        });
+      });
 
-        card.remove();
-      }catch(e){
-        alert(e.message);
-        toggle(true);
-      }
+      card.remove();
+      alert("Rejected");
     };
-
-    function toggle(show){
-      approveBtn.style.display =
-      rejectBtn.style.display =
-      viewBtn.style.display = show ? "inline-block":"none";
-      loading.style.display = show ? "none":"block";
-    }
 
     list.appendChild(card);
   }
