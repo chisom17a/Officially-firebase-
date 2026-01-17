@@ -17,7 +17,7 @@ button[disabled]{opacity:.6}
 
 <body>
 <div class="box">
-  <h2 id="title">Loading...</h2>
+  <h2 id="title">getting task details......</h2>
 
   <p><b>Reward:</b> ₦<span id="earnerPrice"></span></p>
   <p><b>Proof Required:</b> <span id="proof"></span></p>
@@ -25,7 +25,7 @@ button[disabled]{opacity:.6}
   <!-- ✅ TASK GUIDE -->
   <div class="guide">
     <b>Task Guide</b>
-    <p id="taskGuide">Loading guide...</p>
+    <p id="taskGuide">Loading task guide...</p>
   </div>
 
   <a id="visit" target="_blank">
@@ -36,7 +36,7 @@ button[disabled]{opacity:.6}
   <input type="file" id="imageProof" accept="image/*">
 
   <button id="submitBtn">Submit Task</button>
-  <div class="loader" id="loader">⏳ Submitting... Please wait</div>
+  <div class="loader" id="loader">⏳ Submitting... Please wait and don't refresh</div>
 </div>
 
 <script type="module">
@@ -104,7 +104,7 @@ async function loadTask(){
   title.innerText = `${taskData.platform} - ${taskData.type}`;
   earnerPrice.innerText = taskData.earnerPrice;
   proof.innerText = taskData.proofTitle;
-  taskGuide.innerText = taskData.guide || "Follow the instructions carefully.";
+  taskGuide.innerText = taskData.guide || "Follow the instructions carefully and don't undo a tssk after submitting to avoid ban";
   visit.href = taskData.link;
 }
 
@@ -160,7 +160,7 @@ submitBtn.onclick = async ()=>{
     );
 
     alert("✅ Task submitted successfully");
-    location.href="tasks.html";
+    location.href="earner.html";
 
   }catch(e){
     alert("❌ " + e);
