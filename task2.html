@@ -53,20 +53,22 @@ header{background:#fff;padding:15px;font-weight:600}
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+/* ================= FIREBASE (chiearnhubvercel) ================= */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 import {
-  getFirestore, collection, query, where, onSnapshot, getDoc, doc
-} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+  getFirestore, collection, query, where,
+  onSnapshot, getDoc, doc
+} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-/* 🔥 FIREBASE CONFIG */
+/* 🔥 CONFIG */
 const firebaseConfig = {
-  apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
-  authDomain: "chiearnhub-5ba9e.firebaseapp.com",
-  projectId: "chiearnhub-5ba9e",
-  storageBucket: "chiearnhub-5ba9e.firebasestorage.app",
-  messagingSenderId: "332513744974",
-  appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
+  apiKey: "AIzaSyCqHY59fXbXWTOtki5cBT-qryPVNerzToM",
+  authDomain: "chiearnhubvercel.firebaseapp.com",
+  projectId: "chiearnhubvercel",
+  storageBucket: "chiearnhubvercel.firebasestorage.app",
+  messagingSenderId: "1069350970788",
+  appId: "1:1069350970788:web:b6fb81b6c397344d118d31"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -79,28 +81,36 @@ let currentUser;
 let userData = {};
 let completedTasks = new Set();
 
+/* ================= LOCAL STORAGE CHECK ================= */
+const storedUser = JSON.parse(localStorage.getItem("currentUser"));
+if (!storedUser) {
+  location.href = "login.html";
+}
+
 /* ================= AUTH ================= */
 onAuthStateChanged(auth, async (user)=>{
-  if(!user) return location.href="login.html";
+  if(!user || user.uid !== storedUser.uid){
+    localStorage.removeItem("currentUser");
+    return location.href="login.html";
+  }
 
   currentUser = user;
 
   const userSnap = await getDoc(doc(db,"users",user.uid));
-
   if(!userSnap.exists()){
-    alert("Account not found");
+    localStorage.removeItem("currentUser");
     return location.href="login.html";
   }
 
   userData = userSnap.data();
 
-  // ✅ Only earners
+  /* ✅ Only earners */
   if(userData.model !== "Earner"){
     alert("Access denied");
     return location.href="login.html";
   }
 
-  // ✅ Must be activated
+  /* ✅ Must be activated */
   if(userData.status !== "active"){
     alert("Your account is not activated yet");
     return location.href="earner.html";
@@ -121,8 +131,6 @@ function loadMySubmissions(){
 
     snap.forEach(docSnap=>{
       const s = docSnap.data();
-
-      // ❗ Only block if NOT rejected
       if(s.status !== "rejected"){
         completedTasks.add(s.taskId);
       }
@@ -154,12 +162,9 @@ function loadTasks(){
       const id = docSnap.id;
 
       const remaining = t.remaining ?? 0;
-      const price = t.earnerPrice ?? t.price ?? 0; // fallback to price if earnerPrice missing
+      const price = t.earnerPrice ?? t.price ?? 0;
 
-      // ❌ No remaining slots
       if(remaining <= 0) return;
-
-      // ❌ Already done by this user
       if(completedTasks.has(id)) return;
 
       shown++;
@@ -190,4 +195,4 @@ function loadTasks(){
 </script>
 
 </body>
-  </html>
+</html>
