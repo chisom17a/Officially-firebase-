@@ -6,19 +6,27 @@
 
 <style>
 body{font-family:Inter;background:#f4f7fa;padding:20px}
-.box{background:#fff;max-width:500px;margin:auto;padding:20px;border-radius:10px}
+.box{background:#fff;max-width:520px;margin:auto;padding:20px;border-radius:10px}
 input,textarea,button{width:100%;margin:10px 0;padding:10px}
 button{background:#0d6efd;color:#fff;border:none;border-radius:6px;cursor:pointer}
 button[disabled]{opacity:.6}
 .loader{display:none;text-align:center;padding:10px;font-weight:bold}
+.guide{background:#f1f5f9;padding:12px;border-radius:8px;margin:10px 0;font-size:14px}
 </style>
 </head>
 
 <body>
 <div class="box">
   <h2 id="title">Loading...</h2>
+
   <p><b>Reward:</b> ₦<span id="earnerPrice"></span></p>
   <p><b>Proof Required:</b> <span id="proof"></span></p>
+
+  <!-- ✅ TASK GUIDE -->
+  <div class="guide">
+    <b>Task Guide</b>
+    <p id="taskGuide">Loading guide...</p>
+  </div>
 
   <a id="visit" target="_blank">
     <button type="button">Visit Task</button>
@@ -58,7 +66,7 @@ const db = getFirestore(app);
 /* ================= LOCAL STORAGE CHECK ================= */
 const storedUser = JSON.parse(localStorage.getItem("currentUser"));
 if(!storedUser || storedUser.model !== "Earner"){
-  alert("Please login as earner");
+  alert("Please login as an earner");
   location.href="login.html";
 }
 
@@ -92,13 +100,15 @@ async function loadTask(){
   if(!snap.exists()) return location.href="tasks.html";
 
   taskData = snap.data();
+
   title.innerText = `${taskData.platform} - ${taskData.type}`;
   earnerPrice.innerText = taskData.earnerPrice;
   proof.innerText = taskData.proofTitle;
+  taskGuide.innerText = taskData.guide || "Follow the instructions carefully.";
   visit.href = taskData.link;
 }
 
-/* ================= IMG UPLOAD ================= */
+/* ================= IMAGE UPLOAD ================= */
 async function uploadToImgBB(file){
   const fd = new FormData();
   fd.append("image", file);
@@ -140,16 +150,20 @@ submitBtn.onclick = async ()=>{
 
     await setDoc(doc(db,"submissions",submissionId),payload);
     await setDoc(doc(db,"adminTaskQueue",submissionId),payload);
-    await updateDoc(doc(db,"availabletasks",taskId),{ remaining: increment(-1) });
-    await setDoc(doc(db,"users",currentUser.uid,"completedTasks",taskId),{
-      completedAt: serverTimestamp()
+    await updateDoc(doc(db,"availabletasks",taskId),{
+      remaining: increment(-1)
     });
+
+    await setDoc(
+      doc(db,"users",currentUser.uid,"completedTasks",taskId),
+      { completedAt: serverTimestamp() }
+    );
 
     alert("✅ Task submitted successfully");
     location.href="tasks.html";
 
   }catch(e){
-    alert("❌ "+e);
+    alert("❌ " + e);
     submitBtn.disabled=false;
     loader.style.display="none";
   }
