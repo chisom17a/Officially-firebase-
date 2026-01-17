@@ -32,18 +32,21 @@ button[disabled]{opacity:.6}
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-import { 
-  getFirestore, doc, getDoc, updateDoc, setDoc, serverTimestamp, increment 
-} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
+import {
+  getFirestore, doc, getDoc, updateDoc, setDoc,
+  serverTimestamp, increment
+} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
+/* 🔥 chiearnhubvercel CONFIG */
 const firebaseConfig = {
-  apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
-  authDomain: "chiearnhub-5ba9e.firebaseapp.com",
-  projectId: "chiearnhub-5ba9e",
-  messagingSenderId: "332513744974",
-  appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
+  apiKey: "AIzaSyCqHY59fXbXWTOtki5cBT-qryPVNerzToM",
+  authDomain: "chiearnhubvercel.firebaseapp.com",
+  projectId: "chiearnhubvercel",
+  storageBucket: "chiearnhubvercel.firebasestorage.app",
+  messagingSenderId: "1069350970788",
+  appId: "1:1069350970788:web:b6fb81b6c397344d118d31"
 };
 
 const IMG_BB_KEY = "fb44bf17871e5949e02fe80b4f56fa47";
@@ -52,127 +55,105 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const params = new URLSearchParams(location.search);
-const taskId = params.get("id");
-
-if(!taskId){ alert("No task selected"); location.href="tasks.html"; }
-
-let currentUser = null;
-let taskData = null;
-let userData = null;
-
-onAuthStateChanged(auth, async (user)=>{
-  if(!user){ location.href="login.html"; return; }
-  currentUser = user;
-
-  // Load user data
-  const userSnap = await getDoc(doc(db,"users",user.uid));
-  if(!userSnap.exists()){
-    alert("User profile not found");
-    return;
-  }
-  userData = userSnap.data();
-
-  await loadTask();
-});
-
-async function loadTask(){
-  const taskRef = doc(db, "availabletasks", taskId);
-  const snap = await getDoc(taskRef);
-  if(!snap.exists()){ alert("Task not found"); location.href="tasks.html"; return; }
-  taskData = snap.data();
-  document.getElementById("title").innerText = taskData.platform + " - " + taskData.type;
-  document.getElementById("earnerPrice").innerText = taskData.earnerPrice;
-  document.getElementById("proof").innerText = taskData.proofTitle;
-  document.getElementById("visit").href = taskData.link;
+/* ================= LOCAL STORAGE CHECK ================= */
+const storedUser = JSON.parse(localStorage.getItem("currentUser"));
+if(!storedUser || storedUser.model !== "Earner"){
+  alert("Please login as earner");
+  location.href="login.html";
 }
 
+const taskId = new URLSearchParams(location.search).get("id");
+if(!taskId) location.href="tasks.html";
+
+let currentUser, userData, taskData;
+
+/* ================= AUTH VERIFY ================= */
+onAuthStateChanged(auth, async user=>{
+  if(!user || user.uid !== storedUser.uid){
+    localStorage.removeItem("currentUser");
+    return location.href="login.html";
+  }
+
+  currentUser = user;
+
+  const uSnap = await getDoc(doc(db,"users",user.uid));
+  if(!uSnap.exists() || uSnap.data().model !== "Earner"){
+    alert("Unauthorized");
+    return location.href="login.html";
+  }
+
+  userData = uSnap.data();
+  loadTask();
+});
+
+/* ================= LOAD TASK ================= */
+async function loadTask(){
+  const snap = await getDoc(doc(db,"availabletasks",taskId));
+  if(!snap.exists()) return location.href="tasks.html";
+
+  taskData = snap.data();
+  title.innerText = `${taskData.platform} - ${taskData.type}`;
+  earnerPrice.innerText = taskData.earnerPrice;
+  proof.innerText = taskData.proofTitle;
+  visit.href = taskData.link;
+}
+
+/* ================= IMG UPLOAD ================= */
 async function uploadToImgBB(file){
-  const formData = new FormData();
-  formData.append("image", file);
-  const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMG_BB_KEY}`, { method: "POST", body: formData });
+  const fd = new FormData();
+  fd.append("image", file);
+  const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMG_BB_KEY}`,{
+    method:"POST", body:fd
+  });
   const data = await res.json();
   if(!data.success) throw "Image upload failed";
   return data.data.url;
 }
 
-document.getElementById("submitBtn").addEventListener("click", submitTask);
+/* ================= SUBMIT ================= */
+submitBtn.onclick = async ()=>{
+  if(!textProof.value.trim()) return alert("Text proof required");
+  if(!imageProof.files[0]) return alert("Image proof required");
 
-async function submitTask(){
-  const text = document.getElementById("textProof").value.trim();
-  const file = document.getElementById("imageProof").files[0];
-  if(!text) return alert("Text proof required");
-  if(!file) return alert("Image proof required");
-
-  submitBtn.style.display = "none";
+  submitBtn.disabled = true;
   loader.style.display = "block";
 
   try{
-    const taskRef = doc(db, "availabletasks", taskId);
-    const snap = await getDoc(taskRef);
-    const data = snap.data();
-
-    if((data.remaining || 0) <= 0){
-      throw "Task is full";
-    }
-
-    const imageUrl = await uploadToImgBB(file);
-
+    const imgUrl = await uploadToImgBB(imageProof.files[0]);
     const submissionId = crypto.randomUUID();
 
-    const submissionPayload = {
+    const payload = {
       submissionId,
       taskId,
-
-      // 🔹 USER INFO
       userId: currentUser.uid,
       userEmail: currentUser.email,
       username: userData.username || "",
-
-      // 🔹 POSTER
-      posterId: data.posterId,
-
-      // 🔹 TASK INFO
-      platform: data.platform,
-      type: data.type,
-      reward: data.earnerPrice,
-      proofTitle: data.proofTitle,
-      link: data.link,
-
-      // 🔹 PROOF
-      proofText: text,
-      proofImage: imageUrl,
-
-      // 🔹 STATUS
-      status: "pending",
+      posterId: taskData.posterId,
+      platform: taskData.platform,
+      type: taskData.type,
+      reward: taskData.earnerPrice,
+      proofText: textProof.value.trim(),
+      proofImage: imgUrl,
+      status:"pending",
       createdAt: serverTimestamp()
     };
 
-    // ✅ SAVE FOR USER HISTORY
-    await setDoc(doc(db, "submissions", submissionId), submissionPayload);
-
-    // ✅ SAVE FOR ADMIN QUEUE
-    await setDoc(doc(db, "adminTaskQueue", submissionId), submissionPayload);
-
-    // ✅ REDUCE SLOT
-    await updateDoc(taskRef, { remaining: increment(-1) });
-
-    // ✅ MARK COMPLETED
-    await setDoc(doc(db, "users", currentUser.uid, "completedTasks", taskId), {
-      taskId,
+    await setDoc(doc(db,"submissions",submissionId),payload);
+    await setDoc(doc(db,"adminTaskQueue",submissionId),payload);
+    await updateDoc(doc(db,"availabletasks",taskId),{ remaining: increment(-1) });
+    await setDoc(doc(db,"users",currentUser.uid,"completedTasks",taskId),{
       completedAt: serverTimestamp()
     });
 
-    alert("✅ Task submitted successfully!");
-    location.href = "tasks.html";
+    alert("✅ Task submitted successfully");
+    location.href="tasks.html";
 
-  }catch(err){
-    console.error(err);
-    alert("❌ " + err);
-    submitBtn.style.display = "block";
-    loader.style.display = "none";
+  }catch(e){
+    alert("❌ "+e);
+    submitBtn.disabled=false;
+    loader.style.display="none";
   }
-}
+};
 </script>
 </body>
 </html>
