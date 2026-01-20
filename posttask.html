@@ -111,7 +111,7 @@ button.danger{background:#dc2626}
 
 <body>
 
-<!-- 🔐 GLOBAL AUTH SPINNER -->
+<!-- 🔐 AUTH SPINNER -->
 <div id="authSpinner">
   <div class="spinner"></div>
 </div>
@@ -167,11 +167,11 @@ button.danger{background:#dc2626}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 import {
-  getFirestore, doc, getDoc, updateDoc,
-  collection, addDoc, serverTimestamp, onSnapshot
+  getFirestore, doc, getDoc, runTransaction,
+  collection, serverTimestamp, onSnapshot
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-/* ✅ SAME FIREBASE PROJECT AS LOGIN & ADMIN PANEL */
+/* 🔐 FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyCqHY59fXbXWTOtki5cBT-qryPVNerzToM",
   authDomain: "chiearnhubvercel.firebaseapp.com",
@@ -237,43 +237,37 @@ window.calculateTotal = () => {
   totalBox.textContent = a >= 10 ? `Total: ₦${a * selectedPrice}` : "Total: ₦0";
 };
 
-/* 🔐 AUTH (ADMINPANEL PATTERN) */
+/* 🔐 AUTH & ROLE CHECK */
 onAuthStateChanged(auth, async (user) => {
   if (!user) return location.href = "login.html";
 
-  try {
-    const snap = await getDoc(doc(db, "users", user.uid));
-    if (!snap.exists()) {
-      alert("Account record missing");
-      authSpinner.style.display = "none";
-      return;
-    }
-
-    if ((snap.data().model || "").toLowerCase() !== "advertiser") {
-      alert("Unauthorized access");
-      location.href = "login.html";
-      return;
-    }
-
-    currentUser = user;
-    userData = snap.data();
-
-    onSnapshot(doc(db,"users",user.uid), s=>{
-      document.getElementById("balance").textContent =
-        "₦" + (s.data().balance || 0).toLocaleString();
-      userData.balance = s.data().balance || 0;
-    });
-
-    authSpinner.style.display = "none";
-
-  } catch (e) {
-    alert("Network error. Refresh page.");
-    authSpinner.style.display = "none";
+  const snap = await getDoc(doc(db, "users", user.uid));
+  if (!snap.exists()) {
+    alert("Account record missing");
+    return;
   }
+
+  if ((snap.data().model || "").toLowerCase() !== "advertiser") {
+    alert("Unauthorized access");
+    location.href = "login.html";
+    return;
+  }
+
+  currentUser = user;
+  userData = snap.data();
+
+  onSnapshot(doc(db,"users",user.uid), s=>{
+    document.getElementById("balance").textContent =
+      "₦" + (s.data().balance || 0).toLocaleString();
+    userData.balance = s.data().balance || 0;
+  });
+
+  authSpinner.style.display = "none";
 });
 
-/* ===== SUBMIT TASK ===== */
+/* ===== SAFE SUBMIT TASK (TRANSACTION) ===== */
 window.submitTask = async () => {
+
   const qty = Number(amount.value);
   const total = qty * selectedPrice;
 
@@ -292,30 +286,45 @@ window.submitTask = async () => {
   loader.style.display = "block";
 
   try {
-    await updateDoc(doc(db,"users",currentUser.uid),{
-      balance: userData.balance - total
-    });
+    const userRef = doc(db,"users",currentUser.uid);
+    const tasksRef = collection(db,"tasks");
 
-    await addDoc(collection(db,"tasks"),{
-      userId: currentUser.uid,
-      platform: platform.value,
-      type: type.value,
-      link: link.value,
-      proofTitle: proofTitle.value,
-      guide: taskguide.value,
-      quantity: qty,
-      remaining: qty,
-      price: selectedPrice,
-      total,
-      status: "pending",
-      createdAt: serverTimestamp()
+    await runTransaction(db, async (transaction) => {
+
+      const userSnap = await transaction.get(userRef);
+      const balance = userSnap.data().balance || 0;
+
+      if (balance < total) throw "Insufficient balance";
+
+      /* Deduct balance */
+      transaction.update(userRef, {
+        balance: balance - total
+      });
+
+      /* Create task */
+      const newTaskRef = doc(tasksRef);
+      transaction.set(newTaskRef, {
+        userId: currentUser.uid,
+        platform: platform.value,
+        type: type.value,
+        link: link.value,
+        proofTitle: proofTitle.value,
+        guide: taskguide.value,
+        quantity: qty,
+        remaining: qty,
+        price: selectedPrice,
+        total: total,
+        status: "pending",
+        createdAt: serverTimestamp()
+      });
+
     });
 
     alert("✅ Task submitted for admin approval.");
     location.href = "advertiser.html";
 
   } catch (err) {
-    alert("❌ Error: " + err.message);
+    alert("❌ Failed: " + err);
     loader.style.display = "none";
     actions.style.display = "grid";
   }
