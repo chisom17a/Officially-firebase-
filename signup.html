@@ -97,6 +97,7 @@
 </section>
 
 <script>
+  // Auto-fill referral from link
   const params = new URLSearchParams(window.location.search);
   const ref = params.get("ref");
   if (ref) {
@@ -114,7 +115,7 @@ import {
   collection, query, where, getDocs, runTransaction
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-/* ✅ NEW FIREBASE CONFIG (YOUR PROVIDED ONE) */
+/* 🔹 YOUR FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyCqHY59fXbXWTOtki5cBT-qryPVNerzToM",
   authDomain: "chiearnhubvercel.firebaseapp.com",
@@ -142,12 +143,6 @@ function hideLoading() {
   loader.style.display = "none";
 }
 
-async function existsInUsers(field, value) {
-  const q = query(collection(db, "users"), where(field, "==", value));
-  const snap = await getDocs(q);
-  return !snap.empty;
-}
-
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
@@ -167,47 +162,47 @@ form.addEventListener("submit", async (e) => {
   showLoading();
 
   try {
-    if (await existsInUsers("username", username)) throw "Username already taken";
-    if (await existsInUsers("email", email)) throw "Email already used";
-    if (await existsInUsers("phone", phone)) throw "Phone number already used";
+    /* 1️⃣ CREATE AUTH USER FIRST */
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    const uid = cred.user.uid;
 
-    let refUserDoc = null;
+    /* 2️⃣ CREATE USER DOCUMENT */
+    const newUserRef = doc(db, "users", uid);
+
+    await setDoc(newUserRef, {
+      username,
+      email,
+      phone,
+      model,
+      referredBy: referral || null,
+      balance: 0,
+      status: "pending",
+      referralCount: 0,
+      createdAt: serverTimestamp()
+    });
+
+    /* 3️⃣ HANDLE REFERRAL SAFELY */
     if (referral) {
       const q = query(collection(db, "users"), where("username", "==", referral));
       const snap = await getDocs(q);
-      if (snap.empty) throw "Invalid referral username";
-      refUserDoc = snap.docs[0];
-    }
 
-    const cred = await createUserWithEmailAndPassword(auth, email, password);
+      if (!snap.empty) {
+        const refDoc = snap.docs[0];
+        const refRef = doc(db, "users", refDoc.id);
 
-    await runTransaction(db, async (transaction) => {
-      if (refUserDoc) {
-        const refRef = doc(db, "users", refUserDoc.id);
-        const refSnap = await transaction.get(refRef);
-        const currentCount = refSnap.data().referralCount || 0;
-        transaction.update(refRef, { referralCount: currentCount + 1 });
+        await runTransaction(db, async (transaction) => {
+          const refSnap = await transaction.get(refRef);
+          const currentCount = refSnap.data().referralCount || 0;
+          transaction.update(refRef, { referralCount: currentCount + 1 });
+        });
       }
-
-      const newUserRef = doc(db, "users", cred.user.uid);
-      transaction.set(newUserRef, {
-        username,
-        email,
-        phone,
-        model,
-        referredBy: referral || null,
-        balance: 0,
-        status: "pending",
-        referralCount: 0,
-        createdAt: serverTimestamp()
-      });
-    });
+    }
 
     alert("Account created successfully!");
     window.location.href = "login.html";
 
   } catch (err) {
-    alert(typeof err === "string" ? err : err.message);
+    alert(err.message || err);
     hideLoading();
   }
 });
