@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>User Balance Manager - Admin</title>
+<title>Admin – User Balance Control</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -99,8 +99,8 @@ button:hover{opacity:.9}
 
 <!-- FIREBASE -->
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 import {
   getFirestore,
   collection,
@@ -111,47 +111,56 @@ import {
   getDoc,
   updateDoc,
   increment
-} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-/* ===== FIREBASE CONFIG ===== */
+/* ===== FIREBASE CONFIG (FROM YOUR INSTRUCTIONS) ===== */
 const firebaseConfig = {
-  apiKey: "AIzaSyCajnnfI9oxVDv4B44tiMsIgTDApt1rFjc",
-  authDomain: "chiearnhub-5ba9e.firebaseapp.com",
-  projectId: "chiearnhub-5ba9e",
-  storageBucket: "chiearnhub-5ba9e.firebasestorage.app",
-  messagingSenderId: "332513744974",
-  appId: "1:332513744974:web:bfb84a79d0dbbb0057cb1f"
+  apiKey: "AIzaSyCqHY59fXbXWTOtki5cBT-qryPVNerzToM",
+  authDomain: "chiearnhubvercel.firebaseapp.com",
+  projectId: "chiearnhubvercel",
+  storageBucket: "chiearnhubvercel.firebasestorage.app",
+  messagingSenderId: "1069350970788",
+  appId: "1:1069350970788:web:b6fb81b6c397344d118d31"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-/* ===== ADMIN AUTH CHECK (SAME AS adminpanel.html) ===== */
+/* ===== LOCAL STORAGE AUTH CHECK ===== */
 const storedUser = JSON.parse(localStorage.getItem("currentUser"));
-
-if (!storedUser) {
+if (!storedUser || !storedUser.uid) {
   location.href = "login.html";
 }
 
-onAuthStateChanged(auth, async user => {
+/* ===== FIREBASE AUTH + ADMIN VERIFY ===== */
+let adminUID = null;
+
+onAuthStateChanged(auth, async (user) => {
   if (!user || user.uid !== storedUser.uid) {
+    localStorage.removeItem("currentUser");
     location.href = "login.html";
     return;
   }
 
-  const snap = await getDoc(doc(db, "users", user.uid));
-  if (!snap.exists() || snap.data().model !== "Admin") {
+  const adminSnap = await getDoc(doc(db, "users", user.uid));
+  if (!adminSnap.exists() || adminSnap.data().model !== "Admin") {
     alert("Unauthorized access");
     location.href = "login.html";
+    return;
   }
+
+  adminUID = user.uid;
 });
 
 /* ===== PROCESS BALANCE ===== */
 const msg = document.getElementById("msg");
+
 document.getElementById("processBtn").onclick = async () => {
   msg.textContent = "";
   msg.className = "message";
+
+  if (!adminUID) return;
 
   const email = document.getElementById("email").value.trim().toLowerCase();
   const action = document.getElementById("action").value;
@@ -164,11 +173,7 @@ document.getElementById("processBtn").onclick = async () => {
   }
 
   try {
-    const q = query(
-      collection(db, "users"),
-      where("email", "==", email)
-    );
-
+    const q = query(collection(db, "users"), where("email", "==", email));
     const snap = await getDocs(q);
 
     if (snap.empty) {
@@ -193,15 +198,14 @@ document.getElementById("processBtn").onclick = async () => {
       balance: increment(action === "increase" ? amount : -amount)
     });
 
-    msg.textContent = `Balance updated successfully.`;
+    msg.textContent = "Balance updated successfully.";
     msg.classList.add("success");
-
     document.getElementById("amount").value = "";
 
   } catch (err) {
+    console.error(err);
     msg.textContent = "Error updating balance.";
     msg.classList.add("error");
-    console.error(err);
   }
 };
 </script>
