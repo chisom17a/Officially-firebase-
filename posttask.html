@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Post Task - Chiearn Hub</title>
-
 <style>
 :root{
   --primary:#0d6efd;
@@ -108,10 +107,8 @@ button.danger{background:#dc2626}
 }
 </style>
 </head>
-
 <body>
 
-<!-- 🔐 AUTH SPINNER -->
 <div id="authSpinner">
   <div class="spinner"></div>
 </div>
@@ -128,9 +125,7 @@ button.danger{background:#dc2626}
   <select id="platform"></select>
 
   <label>Task Type</label>
-  <select id="type">
-    <option value="">Select Platform First</option>
-  </select>
+  <select id="type"></select>
 
   <div class="price-box" id="priceBox">Price per person: ₦0</div>
 
@@ -147,7 +142,6 @@ button.danger{background:#dc2626}
   <input type="number" id="amount" min="10">
 
   <button onclick="calculateTotal()">Calculate Total</button>
-
   <div class="price-box" id="totalBox">Total: ₦0</div>
 
   <div id="loader">
@@ -171,7 +165,7 @@ import {
   collection, serverTimestamp, onSnapshot
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-/* 🔐 FIREBASE CONFIG */
+/* FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyCqHY59fXbXWTOtki5cBT-qryPVNerzToM",
   authDomain: "chiearnhubvercel.firebaseapp.com",
@@ -186,12 +180,24 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 const authSpinner = document.getElementById("authSpinner");
+const balanceDisplay = document.getElementById("balance");
+
+const amountInput = document.getElementById("amount");
+const platformInput = document.getElementById("platform");
+const typeInput = document.getElementById("type");
+const linkInput = document.getElementById("link");
+const proofTitleInput = document.getElementById("proofTitle");
+const taskGuideInput = document.getElementById("taskguide");
+const loader = document.getElementById("loader");
+const actions = document.getElementById("actions");
+const totalBox = document.getElementById("totalBox");
+const priceBox = document.getElementById("priceBox");
 
 let currentUser;
 let userData = {};
 let selectedPrice = 0;
 
-/* ===== TASK TYPES ===== */
+/* TASK TYPES */
 const taskTypes = {
   WhatsApp:[{n:"Group Join/channel",p:30},{n:"Status Post",p:40},{n:"Channel Join and Like",p:40},{n:"Channel React No Join",p:15},{n:"Message Sending",p:40}],
   Telegram:[{n:"Group Join",p:20},{n:"Channel Follow",p:20},{n:"Simple Bot",p:35},{n:"Complex Bot",p:50},{n:"Web Bot",p:50}],
@@ -208,46 +214,41 @@ const taskTypes = {
   Threads:[{n:"Post Like",p:19},{n:"Comment",p:15},{n:"Follow",p:15},{n:"Repost",p:20}]
 };
 
-/* ===== INIT PLATFORM ===== */
-platform.innerHTML = `<option value="">Select Platform</option>` +
+/* INIT PLATFORM */
+platformInput.innerHTML = `<option value="">Select Platform</option>` +
 Object.keys(taskTypes).map(p=>`<option>${p}</option>`).join("");
 
-platform.onchange = () => {
-  type.innerHTML = "<option value=''>Select Task Type</option>";
+platformInput.onchange = () => {
+  typeInput.innerHTML = "<option value=''>Select Task Type</option>";
   selectedPrice = 0;
   priceBox.textContent = "Price per person: ₦0";
   totalBox.textContent = "Total: ₦0";
 
-  taskTypes[platform.value]?.forEach(t=>{
+  taskTypes[platformInput.value]?.forEach(t=>{
     const o = document.createElement("option");
     o.textContent = t.n;
     o.dataset.price = t.p;
-    type.appendChild(o);
+    typeInput.appendChild(o);
   });
 };
 
-type.onchange = () => {
-  selectedPrice = Number(type.selectedOptions[0].dataset.price);
+typeInput.onchange = () => {
+  selectedPrice = Number(typeInput.selectedOptions[0].dataset.price || 0);
   priceBox.textContent = `Price per person: ₦${selectedPrice}`;
   calculateTotal();
 };
 
-window.calculateTotal = () => {
-  const a = Number(amount.value);
-  totalBox.textContent = a >= 10 ? `Total: ₦${a * selectedPrice}` : "Total: ₦0";
-};
+function calculateTotal() {
+  const qty = Number(amountInput.value || 0);
+  totalBox.textContent = qty >= 10 ? `Total: ₦${qty * selectedPrice}` : "Total: ₦0";
+}
 
-/* 🔐 AUTH & ROLE CHECK */
+/* AUTH CHECK */
 onAuthStateChanged(auth, async (user) => {
   if (!user) return location.href = "login.html";
 
   const snap = await getDoc(doc(db, "users", user.uid));
-  if (!snap.exists()) {
-    alert("Account record missing");
-    return;
-  }
-
-  if ((snap.data().model || "").toLowerCase() !== "advertiser") {
+  if (!snap.exists() || (snap.data().model || "").toLowerCase() !== "advertiser") {
     alert("Unauthorized access");
     location.href = "login.html";
     return;
@@ -257,21 +258,19 @@ onAuthStateChanged(auth, async (user) => {
   userData = snap.data();
 
   onSnapshot(doc(db,"users",user.uid), s=>{
-    document.getElementById("balance").textContent =
-      "₦" + (s.data().balance || 0).toLocaleString();
+    balanceDisplay.textContent = "₦" + ((s.data().balance || 0).toLocaleString());
     userData.balance = s.data().balance || 0;
   });
 
   authSpinner.style.display = "none";
 });
 
-/* ===== SAFE SUBMIT TASK (TRANSACTION) ===== */
-window.submitTask = async () => {
-
-  const qty = Number(amount.value);
+/* SUBMIT TASK */
+async function submitTask() {
+  const qty = Number(amountInput.value || 0);
   const total = qty * selectedPrice;
 
-  if (qty < 10 || !platform.value || !type.value || !link.value || !proofTitle.value) {
+  if (!platformInput.value || !typeInput.value || !linkInput.value || !proofTitleInput.value || qty < 10) {
     alert("Complete all fields correctly");
     return;
   }
@@ -290,26 +289,21 @@ window.submitTask = async () => {
     const tasksRef = collection(db,"tasks");
 
     await runTransaction(db, async (transaction) => {
-
       const userSnap = await transaction.get(userRef);
       const balance = userSnap.data().balance || 0;
 
       if (balance < total) throw "Insufficient balance";
 
-      /* Deduct balance */
-      transaction.update(userRef, {
-        balance: balance - total
-      });
+      transaction.update(userRef, { balance: balance - total });
 
-      /* Create task */
       const newTaskRef = doc(tasksRef);
       transaction.set(newTaskRef, {
         userId: currentUser.uid,
-        platform: platform.value,
-        type: type.value,
-        link: link.value,
-        proofTitle: proofTitle.value,
-        guide: taskguide.value,
+        platform: platformInput.value,
+        type: typeInput.value,
+        link: linkInput.value,
+        proofTitle: proofTitleInput.value,
+        guide: taskGuideInput.value || "",
         quantity: qty,
         remaining: qty,
         price: selectedPrice,
@@ -317,18 +311,21 @@ window.submitTask = async () => {
         status: "pending",
         createdAt: serverTimestamp()
       });
-
     });
 
     alert("✅ Task submitted for admin approval.");
     location.href = "advertiser.html";
 
   } catch (err) {
-    alert("❌ Failed: " + err);
+    console.error(err);
+    alert("❌ Failed to submit task: " + err);
     loader.style.display = "none";
     actions.style.display = "grid";
   }
-};
+}
+
+window.submitTask = submitTask;
+window.calculateTotal = calculateTotal;
 </script>
 
 </body>
